@@ -1,0 +1,556 @@
+// ignore_for_file: unnecessary_getters_setters, unused_element
+
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:jx_utils/jx_utils.dart' as func;
+import '../utils/constant.dart';
+import '../models/jx_model.dart';
+import '../models/jx_field.dart';
+import 'enums.dart';
+
+enum DbAction { insert, update, delete }
+
+enum DbState { insert, update, delete, browser, canceling, loading, error, empty }
+
+class Store extends BaseStore {
+  final List<JxField> jxFields;
+  Store(this.jxFields) : super(jxFields);
+}
+
+abstract class BaseStore with ChangeNotifier {
+  late List<JxField> model;
+  DbState _dbstate = DbState.browser;
+
+  set dbstate(DbState v) {
+    _dbstate = v;
+    notifyListeners();
+  }
+
+  List<Map<String, dynamic>> _dataList = [];
+
+  set dataList(List<Map<String, dynamic>> v) {
+    _dataList = v;
+    notifyListeners();
+  }
+
+  List<Map<String, dynamic>> get dataList => _dataList;
+
+  Map<String, dynamic> updateData = {};
+  String deleteData = '';
+
+  static bool _isRefreshing = false; // Variável para controlar se uma atualização está em andamento
+
+  Timer? _refreshTimeoutTimer;
+
+  DbState get dbstate => _dbstate;
+
+  final List<JxModel> _items = [];
+
+  final Map<int, DbAction> _modified = {};
+  Map<int, DbAction> get modified => _modified;
+
+  String errorMessage = '';
+
+  int get count => _items.length;
+
+  List<JxModel> get items => [..._items];
+
+  List<JxModel> listWatch() {
+    notifyListeners();
+    return [..._items];
+  }
+
+  set items(List<JxModel> source) {
+    _items.clear();
+    for (var item in source) {
+      _items.add(item);
+    }
+  }
+
+  int recno = 0;
+  late String _fieldOrder;
+
+  late String _message;
+  String get message => _message;
+
+  String get fieldOrder => _fieldOrder;
+  set fieldOrder(String fieldName) {
+    _fieldOrder = fieldName;
+  }
+
+  HomeState state = HomeState.unstate;
+
+  // get fields => _items[recno].fields;
+  get fields {
+    if (items.isNotEmpty) {
+      return _items[recno].fields;
+    }
+    return model;
+  }
+
+  BaseStore(this.model) {
+    _fieldOrder = 'id';
+    _message = '';
+    errorMessage = '';
+  }
+
+  Future<List<Map<String, dynamic>>> toListMap(String field1, field2) async {
+    final List<Map<String, dynamic>> itemsMapList =
+        _items.map((item) {
+          return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
+        }).toList();
+    return itemsMapList;
+  }
+
+  Map<int, String> toLookupMap(String field1, field2, String? controle) {
+    final Map<int, String> itemsMapList = {};
+
+    log("lookupMap $controle");
+    for (var el in _items) {
+      itemsMapList[el.fieldByName(field1)] = el.fieldByName(field2);
+    }
+    return itemsMapList;
+  }
+
+  Future<bool> refresh([String? controle]) async {
+    const int maxAttempts = 10;
+    const int timeoutDuration = 30; // Tempo em segundos para o timeout
+    int attempt = 0;
+    bool success = false;
+
+    if (_isRefreshing) {
+      log("Uma atualização já está em andamento. Aguardando timeout...");
+      final startTime = DateTime.now();
+
+      // Loop até que o timeout ocorra ou a atualização seja liberada
+      while (_isRefreshing) {
+        if (DateTime.now().difference(startTime).inSeconds > timeoutDuration) {
+          log("Timeout atingido.");
+          return false; // Timeout atingido, retorna false
+        }
+        await Future.delayed(
+          Duration(milliseconds: 100),
+        ); // Espera breve antes de verificar novamente
+      }
+
+      log("Atualização liberada. Tentando nova atualização.");
+    }
+
+    _isRefreshing = true;
+    log("Iniciando refresh $controle ===>");
+
+    // Inicia o timer para timeout
+    _refreshTimeoutTimer = Timer(Duration(seconds: timeoutDuration), () {
+      _isRefreshing = false;
+      log("Timeout atingido. Permissão para nova atualização.");
+    });
+
+    while (attempt < maxAttempts && !success) {
+      attempt++;
+      log("Tentativa $attempt de $maxAttempts para refresh $controle ===>");
+      state = HomeState.loading;
+      dbstate = DbState.loading;
+
+      try {
+        beforeRefresh();
+
+        if (!_dataList.isNotEmpty) {
+          throw Exception('O resultado da pesquisa está vazio!');
+        }
+        log("listas");
+
+        items = dataList.map((e) => JxModel.fromJson(e, model)).toList();
+
+        state = HomeState.success;
+        dbstate = DbState.browser;
+        success = true;
+      } catch (e) {
+        //print('Stack Trace: $stacktrace');
+        state = HomeState.error;
+        dbstate = DbState.error;
+        log('Erro ao acessar a API: $errorMessage => $e');
+
+        if (attempt < maxAttempts) {
+          log('Tentativa falhou, tentando novamente em 1 segundo...');
+          await Future.delayed(Duration(seconds: 1));
+        } else {
+          log('Máximo de tentativas atingido. Falha na atualização.');
+        }
+      }
+    }
+
+    _refreshTimeoutTimer?.cancel(); // Cancela o timer se a atualização for concluída
+    _isRefreshing = false;
+    notifyListeners();
+
+    if (success) {
+      await afterRefresh();
+    }
+
+    log("refresh $controle <====");
+    return success;
+  }
+
+  void log(String message) {
+    if (kDebugMode) {
+      print(message);
+    }
+  }
+
+  void beforeRefresh() {
+    _modified.clear;
+    clear();
+    last();
+    _isRefreshing = true;
+    log("refresh => $_isRefreshing");
+  }
+
+  Future<void> afterRefresh() async {
+    _updateControllerByData();
+    _isRefreshing = false;
+    log("refresh => $_isRefreshing");
+  }
+
+  Future<void> commit() async {
+    _modified.forEach((key, value) {});
+  }
+
+  dbStateMode(DbState v) {
+    dbstate = v;
+  }
+
+  void updateControllerByData() {
+    switch (dbstate) {
+      case DbState.canceling:
+        _cancelAppend();
+        break;
+      case DbState.update:
+        break;
+      case DbState.insert:
+        break;
+      default:
+    }
+
+    dbstate = DbState.browser;
+    _updateControllerByData();
+  }
+
+  void _updateControllerByData() {
+    if (_items.isEmpty) return;
+    final List<JxField> mdl = _items[recno].fields ?? [];
+    for (var item in mdl) {
+      var value = fieldByName(item.name);
+      if (item.type == FieldType.ftMoney) {
+        String decimalPart = List.filled(item.decimals, '0').join();
+        if (decimalPart.isNotEmpty) decimalPart = ".$decimalPart";
+        final NumberFormat formatCurrency = NumberFormat("$moneyFormat$decimalPart", countryLocale);
+        if (value == "") {
+          value = 0;
+        }
+        value = formatCurrency.format(value ?? 0);
+      } else if (item.type == FieldType.ftDouble) {
+        String decimalPart = List.filled(item.decimals, '0').join();
+        if (decimalPart.isNotEmpty) decimalPart = ".$decimalPart";
+        final NumberFormat formatCurrency = NumberFormat(
+          "$doubleFormat$decimalPart",
+          countryLocale,
+        );
+        if (value == "") {
+          value = 0;
+        }
+        value = formatCurrency.format(value ?? 0);
+      } else {}
+      field(item.name).controller.text = value != null ? "$value" : "";
+    }
+
+    log("updateController recno $recno");
+
+    notifyListeners();
+  }
+
+  Future<void> updateDataByController() async {
+    final mdl = _items[recno].fields ?? [];
+    for (final item in mdl) {
+      final v = item.controller.text;
+      dynamic value;
+
+      if (item.isMoney || item.isDouble) {
+        value = func.doubleRawValue(v);
+      } else if (item.isDigit) {
+        value = int.tryParse(item.controller.text) ?? 0;
+      } else if (item.fieldType == FieldType.ftBool) {
+        value = v == "true" ? true : false;
+      } else if (item.fieldType == FieldType.ftDateTime) {
+        // Tratando campos do tipo DateTime
+        final DateFormat formatter = DateFormat('yyyy-MM-ddTHH:mm:ss'); // Formato ISO 8601
+        final DateTime dateTime = DateFormat('seuFormatoEntrada').parse(v, true);
+        value = formatter.format(dateTime);
+      } else {
+        value = v;
+      }
+      setFieldByName(item.name, value);
+    }
+
+    if (dbstate == DbState.update) {
+      _addModified(DbAction.update);
+    }
+
+    notifyListeners();
+    updateData = _items[recno].field2Json();
+  }
+
+  void cancel() {
+    _updateControllerByData();
+  }
+
+  void save() {
+    final List<JxField> mdl = _items[recno].fields ?? [];
+    for (var item in mdl) {
+      dynamic value;
+      final str = field(item.name).controller.text;
+      switch (item.fieldType) {
+        case FieldType.ftInteger:
+          value = int.parse(str);
+          break;
+        case FieldType.ftDouble:
+          value = int.parse(str);
+          break;
+        default:
+          value = item.value;
+      }
+      setFieldByName(item.name, value);
+    }
+    notifyListeners();
+  }
+
+  bool _inModified(int rec) {
+    return _modified.containsKey(rec);
+  }
+
+  bool _inModifiedInsert(int rec) {
+    return _modified.containsKey(rec) && _modified[rec] == DbAction.insert;
+  }
+
+  bool _isDeleted(int rec) {
+    return _modified.containsKey(rec) && _modified[rec] == DbAction.delete;
+  }
+
+  void _addModified(DbAction action) {
+    if (!_inModifiedInsert(recno)) {
+      _modified[recno] = action;
+    }
+    _modified.forEach((key, value) {
+      debugPrint("modificado $key $value");
+    });
+  }
+
+  Widget watch(String fieldName) {
+    return ListenableBuilder(
+      listenable: this,
+      builder: (BuildContext context, Widget? child) {
+        return Text(
+          "${fieldByName(fieldName)}",
+          style: const TextStyle(fontSize: 16, color: Colors.black),
+        );
+      },
+    );
+  }
+
+  void _cancelAppend() {
+    if (dbstate != DbState.canceling) {
+      return;
+    }
+    dbstate = DbState.browser;
+    last();
+    _items.removeAt(recno);
+    _modified.remove(recno);
+    recno--;
+  }
+
+  Future<void> append() async {
+    final JxModel mdl = _items[recno].clone();
+
+    final int nextId =
+        _items.isNotEmpty ? _items.last.fields!.firstWhere((f) => f.name == 'id').value + 1 : 1;
+    final Map<String, dynamic> fieldValues = {
+      'id': nextId,
+      'nome': 'nome $nextId',
+      'senha': '1#dF123',
+      'salario': 1900000,
+    };
+
+    // Aplicar valores ao modelo.
+    for (var field in mdl.fields!) {
+      field.value = fieldValues[field.name] ?? field.value;
+    }
+
+    _items.add(mdl);
+    recno = _items.length - 1;
+    log("append recno $recno");
+    last();
+    _updateControllerByData();
+    dbstate = DbState.insert;
+    _addModified(DbAction.insert);
+  }
+
+  Future<void> update() async {
+    dbstate = DbState.update;
+    _addModified(DbAction.update);
+  }
+
+  void remove() {
+    _setDeleted();
+  }
+
+  void _setDeleted() {
+    log("delete $recno ${fieldByName('id')}");
+    _addModified(DbAction.delete);
+    if (!next()) {
+      prior();
+    }
+
+    deleteData = fieldByName('id').toString();
+    _updateControllerByData();
+  }
+
+  void clear() {
+    _modified.clear();
+    _items.clear();
+  }
+
+  void first([bool updateController = false]) {
+    recno = 0;
+    log("first");
+    if (updateController) {
+      _updateControllerByData();
+    }
+  }
+
+  void last([bool updateController = false]) {
+    recno = _items.length - 1;
+    if (recno < 0) recno = 0;
+    log("last");
+    if (updateController) {
+      _updateControllerByData();
+    }
+  }
+
+  dynamic fieldByName(String key) {
+    if (recno == -1) {
+      _message = 'Item não encontrado!';
+      last();
+    }
+    if (_items.isEmpty) {
+      throw Exception('O resultado da pesquisa está vázio!');
+    }
+    return _items[recno].fieldByName(key);
+  }
+
+  void setFieldByName(String key, dynamic v) {
+    _items[recno].setFieldByName(key, v);
+  }
+
+  void changed(String fieldName, String v) {
+    _items[recno].setFieldByName(fieldName, v);
+    notifyListeners();
+  }
+
+  JxField field(String fieldName) {
+    final List<JxField> mdl = _items[recno].fields ?? [];
+
+    for (var item in mdl) {
+      if (item.name == fieldName) {
+        return item;
+      }
+    }
+    throw Exception('Field Not $fieldName Found');
+  }
+
+  JxField fieldByOrder(int id) {
+    if (id > _items.length) {
+      throw Exception('Field Not $id Found');
+    }
+    final List<JxField> mdl = _items[recno].fields ?? [];
+    return mdl[id];
+  }
+
+  void orderBy(String fieldName) {
+    if (_fieldOrder == fieldName) return;
+    final vField = (_items[recno].fieldByName(fieldName) as JxField);
+
+    switch (vField.type) {
+      case FieldType.ftInteger:
+      case FieldType.ftDouble:
+        func.sortByNumber(_items, fieldName);
+        break;
+      case FieldType.ftDate:
+      case FieldType.ftDateTime:
+        func.sortByDate(_items, fieldName);
+        break;
+      case FieldType.ftString:
+      default:
+        func.sortByString(_items, fieldName);
+    }
+    _fieldOrder = fieldName;
+  }
+
+  void findByID(dynamic key) {
+    recno = 0;
+    orderBy('id');
+    recno = func.binarySearch(key, _items, "id");
+    if (_isDeleted(recno)) next();
+  }
+
+  bool next([bool updateController = false]) {
+    int oldRec = recno;
+    bool ok = false;
+    while (recno < items.length - 1) {
+      recno++;
+      if (!_isDeleted(recno)) {
+        ok = true;
+        break;
+      }
+    }
+    if (ok) {
+      if (updateController) {
+        _updateControllerByData();
+      }
+      return true;
+    } else {
+      recno = oldRec;
+    }
+    return false;
+  }
+
+  bool prior([bool updateController = false]) {
+    int oldRec = recno;
+    bool ok = false;
+    while (recno > 0) {
+      recno--;
+      if (!_isDeleted(recno)) {
+        ok = true;
+        break;
+      }
+    }
+    if (ok) {
+      if (updateController) {
+        _updateControllerByData();
+      }
+      return true;
+    } else {
+      recno = oldRec;
+    }
+    return false;
+  }
+
+  void findFirst(String fieldName, dynamic key) {
+    recno = 0;
+    orderBy(fieldName);
+    recno = func.binarySearch(key, _items, fieldName);
+    if (recno == -1) {
+      _message = 'Item não encontrado!';
+    }
+  }
+}

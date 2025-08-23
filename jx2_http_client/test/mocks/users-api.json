@@ -1,0 +1,273 @@
+{
+  "uuid": "ced50a54-5913-47b9-af2a-f2c9c041172f",
+  "name": "Users API Mock",
+  "routes": [
+    {
+      "uuid": "bd119720-b3d4-4231-a598-b9959861c43f",
+      "method": "get",
+      "endpoint": "/users",
+      "responses": [
+        {
+          "uuid": "e8d0483d-2b69-407f-a956-a61f92c1df35",
+          "statusCode": 200,
+          "body": "[\n  {\n    \"id\": 1,\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\"\n  },\n  {\n    \"id\": 2,\n    \"name\": \"Jane Smith\",\n    \"email\": \"jane@example.com\"\n  }\n]",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "latency": 0,
+          "label": "",
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "type": "http",
+      "documentation": "",
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "dc1fea28-eebf-4ee3-a4c8-e881d7a62623",
+      "method": "post",
+      "endpoint": "/users",
+      "responses": [
+        {
+          "uuid": "abece400-3d4d-4be5-814c-2ab64122816e",
+          "statusCode": 201,
+          "body": "{\n  \"id\": 3,\n  \"name\": \"Novo Usuário\",\n  \"email\": \"novo@exemplo.com\"\n}",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "latency": 0,
+          "label": "",
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "type": "http",
+      "documentation": "",
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "08a5012e-cf8f-4714-be62-f8dd20f0d715",
+      "method": "get",
+      "endpoint": "/users/404",
+      "responses": [
+        {
+          "uuid": "b0c5429c-9dd9-4fd9-8183-c4bfcbefa9bb",
+          "statusCode": 404,
+          "body": "{\"message\": \"User not found\"}",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "latency": 0,
+          "label": "",
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "type": "http",
+      "documentation": "",
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "0404ecd6-d10e-4f97-944d-594037363223",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "background",
+      "responses": [
+        {
+          "uuid": "fa41ecf4-e98d-446c-813a-6582e07565ab",
+          "body": "{}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "image/jpeg"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Origin, Accept,Authorization,Content-Length, X-Requested-With"
+            }
+          ],
+          "bodyType": "FILE",
+          "filePath": "/home/john/Downloads/mockoon/background.jpg",
+          "databucketID": "",
+          "sendFileAsBody": true,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "d02fad62-c56c-4c37-baf2-f12ef392bbfc",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "profile",
+      "responses": [
+        {
+          "uuid": "b2f0018c-2c5e-41bb-9699-a56fc5124948",
+          "body": "{}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "image/png"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Origin, Accept,Authorization,Content-Length, X-Requested-With"
+            }
+          ],
+          "bodyType": "FILE",
+          "filePath": "/home/john/Downloads/mockoon/perfil.png",
+          "databucketID": "",
+          "sendFileAsBody": true,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    }
+  ],
+  "lastMigration": 33,
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3000,
+  "hostname": "",
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "bd119720-b3d4-4231-a598-b9959861c43f"
+    },
+    {
+      "type": "route",
+      "uuid": "dc1fea28-eebf-4ee3-a4c8-e881d7a62623"
+    },
+    {
+      "type": "route",
+      "uuid": "08a5012e-cf8f-4714-be62-f8dd20f0d715"
+    },
+    {
+      "type": "route",
+      "uuid": "0404ecd6-d10e-4f97-944d-594037363223"
+    },
+    {
+      "type": "route",
+      "uuid": "d02fad62-c56c-4c37-baf2-f12ef392bbfc"
+    }
+  ],
+  "folders": [],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "",
+      "value": ""
+    },
+    {
+      "key": "Access-Control-Allow-Origin",
+      "value": "*"
+    },
+    {
+      "key": "Access-Control-Allow-Methods",
+      "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    },
+    {
+      "key": "Access-Control-Allow-Headers",
+      "value": "Content-Type, Origin, Accept, Authorization, Content-Length, X-Requested-With"
+    }
+  ],
+  "proxyReqHeaders": [],
+  "proxyResHeaders": [],
+  "data": [],
+  "callbacks": []
+}

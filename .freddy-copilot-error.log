@@ -1,0 +1,61 @@
+
+      --------------------------------------
+      Error Stack:: "AxiosError: Request failed with status code 401\n    at Le (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:162328)\n    at IncomingMessage.<anonymous> (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:174198)\n    at IncomingMessage.emit (node:events:530:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at processTicksAndRejections (node:internal/process/task_queues:82:21)"
+      Error Message:: "Request failed with status code 401"
+      Error Name:: "AxiosError"
+      Request ID:: 088a83c5-035a-485c-9620-a89eefb39a53
+      
+      Env:: release
+      API Route:: /api/v1/copilot/migration_scope
+      API Response Message:: Invalid token
+      API Response Error Type:: unauthorized
+
+      Timestamp:: Sun, 02 Feb 2025 00:30:05 GMT
+      Extension Version:: 2.2.13
+      --------------------------------------
+    
+      --------------------------------------
+      Error Stack:: "TypeError: The argument 'file' cannot be empty. Received ''\n    at normalizeSpawnArguments (node:child_process:553:11)\n    at spawnSync (node:child_process:870:8)\n    at /home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:69599\n    at new Promise (<anonymous>)\n    at r.spawnSync (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:69549)\n    at a.FdkHelper.runInBackground (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:80172)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at a.FdkHelper.getFdkVersion (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:75807)\n    at m.getFdkVersion (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:135376)\n    at m.resolveWebviewView (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:116513)\n    at DB.$resolveWebviewView (file:///opt/visual-studio-code/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:157:24585)"
+      Error Message:: "The argument 'file' cannot be empty. Received ''"
+      Error Name:: "TypeError"
+      
+      
+      
+      
+      
+      
+
+      Timestamp:: Sun, 02 Feb 2025 00:30:05 GMT
+      Extension Version:: 2.2.13
+      --------------------------------------
+    
+      --------------------------------------
+      Error Stack:: "AxiosError: Request failed with status code 401\n    at Le (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:162328)\n    at g.<anonymous> (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:173542)\n    at g.emit (node:events:530:35)\n    at g._processResponse (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:49588)\n    at ClientRequest._onNativeResponse (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:44660)\n    at Object.onceWrapper (node:events:633:26)\n    at ClientRequest.emit (node:events:530:35)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:702:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:118:17)\n    at TLSSocket.socketOnData (node:_http_client:544:22)\n    at TLSSocket.emit (node:events:518:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at TLSSocket.Readable.push (node:internal/streams/readable:392:5)\n    at TLSWrap.onStreamRead (node:internal/stream_base_commons:191:23)"
+      Error Message:: "Request failed with status code 401"
+      Error Name:: "AxiosError"
+      Request ID:: 61b1e733-2b67-43c3-9464-f65aa019ad03
+      
+      Env:: release
+      API Route:: /api/v1/copilot/completions/platform/3
+      
+      
+
+      Timestamp:: Sun, 02 Feb 2025 00:30:29 GMT
+      Extension Version:: 2.2.13
+      --------------------------------------
+    
+      --------------------------------------
+      Error Stack:: "AxiosError: Request failed with status code 401\n    at Le (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:162328)\n    at g.<anonymous> (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:173542)\n    at g.emit (node:events:530:35)\n    at g._processResponse (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:49588)\n    at ClientRequest._onNativeResponse (/home/john/.vscode/extensions/freshworksmarketplace.freddy-copilot-2.2.13/dist/extension.js:2:44660)\n    at Object.onceWrapper (node:events:633:26)\n    at ClientRequest.emit (node:events:530:35)\n    at HTTPParser.parserOnIncomingClient (node:_http_client:702:27)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:118:17)\n    at TLSSocket.socketOnData (node:_http_client:544:22)\n    at TLSSocket.emit (node:events:518:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at TLSSocket.Readable.push (node:internal/streams/readable:392:5)\n    at TLSWrap.onStreamRead (node:internal/stream_base_commons:191:23)"
+      Error Message:: "Request failed with status code 401"
+      Error Name:: "AxiosError"
+      Request ID:: 61b1e733-2b67-43c3-9464-f65aa019ad03
+      
+      Env:: release
+      API Route:: /api/v1/copilot/completions/platform/3
+      
+      
+
+      Timestamp:: Sun, 02 Feb 2025 00:30:29 GMT
+      Extension Version:: 2.2.13
+      --------------------------------------
+    

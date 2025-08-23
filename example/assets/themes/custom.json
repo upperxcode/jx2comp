@@ -1,0 +1,9 @@
+{
+  "gridBorder": {"background": "transparent", "foreground": "#D3D7E0"},
+  "gridAlternatingBackground": {"background": "#F9FAFB", "foreground": "#2E3A59"},
+  "gridFocus": {"background": "#EBF4FF", "foreground": "#1877F2"},
+  "gridText": {"background": "transparent", "foreground": "#2E3A59"},
+  "gridEven": {"background": "#D3D7E0", "foreground": "#F9FAFB"},
+  "gridOdd": {"background": "#1877F2", "foreground": "#4C5E80"},
+  "gridChecked": {"background": "#FFC107", "foreground": "#212121"}
+}

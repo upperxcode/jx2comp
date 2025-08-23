@@ -1,0 +1,22 @@
+name: jx2_http_client
+description: Módulo de cliente HTTP multiplataforma
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.8.1
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.8.0+1
+  jx2_core:
+    path: ../jx2_core
+  jx2_platform:
+    path: ../jx2_platform
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test: ^1.26.3
+  mocktail: ^1.0.4
+

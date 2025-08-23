@@ -1,0 +1,32 @@
+name: jx_data
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  brasil_fields: ^1.17.0
+  intl: ^0.20.2
+  balloon_tip: ^0.0.2
+  jx2_widgets:
+    path: ../jx2_widgets
+  jx2_core:
+    path: ../jx2_core
+  jx2_grid:
+    path: ../jx2_grid
+  jx_utils:
+    path: ../jx_utils
+  just_the_tooltip: ^0.0.12
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
