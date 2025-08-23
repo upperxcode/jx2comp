@@ -1,5 +1,3 @@
-library jx2_platform;
-
 // Exportações centralizadas
 export 'platform_helper.dart';
 export 'device_info_helper.dart';
