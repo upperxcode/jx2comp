@@ -265,7 +265,7 @@ packages:
     source: hosted
     version: "0.0.12"
   jx2_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: jx2_core
       relative: true
@@ -286,7 +286,7 @@ packages:
     source: path
     version: "0.1.0"
   jx2_platform:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: jx2_platform
       relative: true

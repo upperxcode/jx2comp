@@ -24,7 +24,10 @@ dependencies:
     path: jx_utils
   jx2_http_client:
     path: jx2_http_client
-
+  jx2_core:
+    path: jx2_core
+  jx2_platform:
+    path: jx2_platform
 
 
   cupertino_icons: ^1.0.8
