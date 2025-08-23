@@ -5,7 +5,7 @@ export 'components/inputs/forms/jx_form.dart';
 export 'components/inputs/textfields/jx_text_form.dart';
 export 'components/textfields/jx_form_button.dart';
 export 'core/theme/enums.dart';
-export 'core/theme/jx_theme.dart';
+export 'core/theme.dart';
 export 'components/menu_drawer/core/menu_item.dart';
 export 'components/dashboard/dashboard_screen.dart';
 
