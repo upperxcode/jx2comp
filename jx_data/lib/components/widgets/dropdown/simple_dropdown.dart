@@ -35,7 +35,7 @@ class _DropdownWithDecorationState extends State<SimpleDropdown> {
           const SizedBox(height: 5),
           DropdownButtonFormField<String>(
             style: jxFormTextStyle(),
-            value: widget.field.value == true ? "SIM" : "NÃO",
+            initialValue: widget.field.value == true ? "SIM" : "NÃO",
             decoration: buildInputDecoration(widget.field),
             onChanged: (String? newValue) {
               setState(() {
@@ -44,10 +44,9 @@ class _DropdownWithDecorationState extends State<SimpleDropdown> {
                 log("changed controller ${widget.field.controller.text}");
               });
             },
-            items:
-                <String>['SIM', 'NÃO'].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(value: value, child: Text(value));
-                }).toList(),
+            items: <String>['SIM', 'NÃO'].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value));
+            }).toList(),
           ),
         ],
       ),
@@ -57,12 +56,12 @@ class _DropdownWithDecorationState extends State<SimpleDropdown> {
   Widget buildFieldTitle() {
     return widget.field.tip.isNotEmpty
         ? Row(
-          children: [
-            FieldTitle(widget.field.displayName ?? widget.field.name),
-            const SizedBox(width: 5),
-            BalloonTooltip(message: "${widget.field.tip}$tipMessage"),
-          ],
-        )
+            children: [
+              FieldTitle(widget.field.displayName ?? widget.field.name),
+              const SizedBox(width: 5),
+              BalloonTooltip(message: "${widget.field.tip}$tipMessage"),
+            ],
+          )
         : FieldTitle(widget.field.displayName ?? widget.field.name);
   }
 

@@ -54,7 +54,7 @@ class DataGrid {
     try {
       if (stateManager == null) {
         if (columns != null) {
-          columns = gridColumns(controller.fields, style: textStyle);
+          columns = gridColumns(controller.fields!, style: textStyle);
         }
         await controller.refresh("gride stataManager == null");
         rows = gridRows(controller);
@@ -154,7 +154,7 @@ class DataGrid {
     final row = <String, TrinaCell>{};
     if (!replace) controller.last();
     row["index"] = TrinaCell(value: position);
-    for (var field in controller.fields) {
+    for (var field in controller.fields!) {
       var value = controller.fieldByName(field.name);
       row[field.name] = TrinaCell(value: value);
     }
@@ -170,7 +170,7 @@ class DataGrid {
 
   TrinaGrid _createTrinaGrid() {
     return TrinaGrid(
-      columns: columns ?? gridColumns(controller.fields, style: textStyle),
+      columns: columns ?? gridColumns(controller.fields!, style: textStyle),
       rows: rows ?? gridRows(controller),
       mode: TrinaGridMode.select,
       // autoSizeMode is not a valid parameter, removing it

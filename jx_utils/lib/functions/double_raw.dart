@@ -1,6 +1,6 @@
 import 'constant.dart';
 
-doubleRawValue(String v) {
+double doubleRawValue(String v) {
   for (int i = 0; i < v.length; i++) {
     final a = v[i];
     if (a == ',' || a == '.') {

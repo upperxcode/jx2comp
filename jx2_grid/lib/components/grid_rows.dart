@@ -11,7 +11,7 @@ List<TrinaRow> gridRows(BaseStore model) {
   do {
     Map<String, TrinaCell> cells = {};
     int index = 0;
-    for (var item in model.fields) {
+    for (var item in model.fields!) {
       if (index == 0) {
         cells["index"] = TrinaCell(value: model.recno);
       }

@@ -102,18 +102,7 @@ class _TrinaGridExamplePageState extends State<TrinaGridExamplePage> {
     TrinaColumn(
       title: 'Role 2',
       field: 'role2',
-      type: TrinaColumnType.select(
-        <String>['Programmer', 'Designer', 'Owner'],
-        builder: (item) {
-          return Row(
-            children: [
-              Icon(item == 'Programmer' ? Icons.code : Icons.design_services),
-              const SizedBox(width: 8),
-              Text(item),
-            ],
-          );
-        },
-      ),
+      type: TrinaColumnType.select(<String>['Programmer', 'Designer', 'Owner']),
     ),
     TrinaColumn(title: 'Joined', field: 'joined', type: TrinaColumnType.date()),
     TrinaColumn(title: 'Working time', field: 'working_time', type: TrinaColumnType.time()),
@@ -130,7 +119,10 @@ class _TrinaGridExamplePageState extends State<TrinaGridExamplePage> {
           alignment: Alignment.center,
           titleSpanBuilder: (text) {
             return [
-              const TextSpan(text: 'Sum', style: TextStyle(color: Colors.red)),
+              const TextSpan(
+                text: 'Sum',
+                style: TextStyle(color: Colors.red),
+              ),
               const TextSpan(text: ' : '),
               TextSpan(text: text),
             ];

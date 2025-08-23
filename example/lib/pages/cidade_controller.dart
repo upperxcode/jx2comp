@@ -14,7 +14,7 @@ class CidadeController extends Store implements GridDataSource {
     // Por exemplo, você pode carregar dados iniciais ou configurar variáveis
   }
   @override
-  List<JxField> get fields => super.fields;
+  List<JxField> get fields => super.fields!;
   @override
   dynamic fieldByName(String key) {
     // Implemente a lógica para retornar o valor do campo pelo nome

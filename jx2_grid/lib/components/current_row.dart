@@ -7,7 +7,7 @@ class CurrentRow {
   TrinaRowColorContext? _context;
 
   set context(v) => _context = v;
-  get context => _context;
+  TrinaRowColorContext? get context => _context;
   int get rowIndex => _context!.rowIdx;
 
   bool get isOdd => _context!.rowIdx.isOdd;

@@ -3,7 +3,7 @@ import '../models/jx_field.dart';
 
 /// Esta função retorna o ícone baseado no tipo do campo
 /// essa função só é chamada se o campo não possui um ícone implícito
-type2Icon(FieldType type, [Color? color]) {
+Icon type2Icon(FieldType type, [Color? color]) {
   const double size = 24;
   color = color ?? Colors.blueAccent;
   late IconData icon;
@@ -31,9 +31,5 @@ type2Icon(FieldType type, [Color? color]) {
     default:
       icon = Icons.sim_card_alert;
   }
-  return Icon(
-    icon,
-    size: size,
-    color: color,
-  );
+  return Icon(icon, size: size, color: color);
 }

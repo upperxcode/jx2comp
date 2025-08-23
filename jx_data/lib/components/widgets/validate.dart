@@ -4,7 +4,7 @@ import '../utils/validate/constants.dart';
 import '../utils/validate/email_validate.dart';
 import '../utils/validate/password.dart';
 
-minBmax(JxField field, double value) {
+bool minBmax(JxField field, double value) {
   return (value >= field.min && value <= field.max);
 }
 
@@ -30,9 +30,7 @@ String? validate(String? value, JxField field, [JxField? match]) {
           : null;
     case FieldType.ftPasswordConfirm:
       if (match == null) return "match field dont defined.";
-      return !isMatchPassoword(value, match.controller.text)
-          ? "Password doesn't match."
-          : null;
+      return !isMatchPassoword(value, match.controller.text) ? "Password doesn't match." : null;
     default:
       return null;
   }

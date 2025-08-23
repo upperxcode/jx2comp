@@ -144,6 +144,7 @@ class JxField {
     return valor;
   }
 
+  @override
   String toString() {
     final valor = _controller.text ?? "";
     return valor;

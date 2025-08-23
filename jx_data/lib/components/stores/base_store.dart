@@ -83,7 +83,7 @@ abstract class BaseStore with ChangeNotifier {
   HomeState state = HomeState.unstate;
 
   // get fields => _items[recno].fields;
-  get fields {
+  List<JxField>? get fields {
     if (items.isNotEmpty) {
       return _items[recno].fields;
     }
@@ -97,10 +97,9 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> toListMap(String field1, field2) async {
-    final List<Map<String, dynamic>> itemsMapList =
-        _items.map((item) {
-          return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
-        }).toList();
+    final List<Map<String, dynamic>> itemsMapList = _items.map((item) {
+      return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
+    }).toList();
     return itemsMapList;
   }
 
@@ -217,7 +216,7 @@ abstract class BaseStore with ChangeNotifier {
     _modified.forEach((key, value) {});
   }
 
-  dbStateMode(DbState v) {
+  void dbStateMode(DbState v) {
     dbstate = v;
   }
 
@@ -372,8 +371,9 @@ abstract class BaseStore with ChangeNotifier {
   Future<void> append() async {
     final JxModel mdl = _items[recno].clone();
 
-    final int nextId =
-        _items.isNotEmpty ? _items.last.fields!.firstWhere((f) => f.name == 'id').value + 1 : 1;
+    final int nextId = _items.isNotEmpty
+        ? _items.last.fields!.firstWhere((f) => f.name == 'id').value + 1
+        : 1;
     final Map<String, dynamic> fieldValues = {
       'id': nextId,
       'nome': 'nome $nextId',

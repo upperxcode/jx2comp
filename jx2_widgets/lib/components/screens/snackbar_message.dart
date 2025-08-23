@@ -49,7 +49,7 @@ class SnackMessage extends StatelessWidget {
   }
 }
 
-snackMessage(
+void snackMessage(
   BuildContext context,
   String contentText,
   void Function() afterExecuteMethod, [

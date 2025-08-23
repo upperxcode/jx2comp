@@ -1,0 +1,44 @@
+name: jx2comp
+description: "A new Flutter project."
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  jx_data:
+    path: jx_data
+  jx2_widgets:
+    path: jx2_widgets
+  jx2_grid:
+    path: jx2_grid
+  jx_utils:
+    path: jx_utils
+  jx2_http_client:
+    path: jx2_http_client
+
+
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+flutter:
+
+
+  uses-material-design: true
+
