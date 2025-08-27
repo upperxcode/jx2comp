@@ -87,6 +87,43 @@ class JxField {
     );
   }
 
+  /// Cria uma nova instância de `JxField` com valores padrão baseados no tipo.
+  ///
+  /// Este construtor de fábrica é ideal para inicializar campos de forma rápida
+  /// sem a necessidade de definir um valor inicial manualmente.
+  ///
+  /// Exemplo de uso:
+  /// ```dart
+  /// final nomeCampo = JxField.from("nome", FieldType.ftString);
+  /// print(nomeCampo.value); // Saída: ""
+  /// ```
+  static JxField withDefaults(
+    String name,
+    FieldType type, {
+    dynamic lookupTable,
+    List<String> calculation = const [],
+    bool visible = true,
+    bool readOnly = false,
+    String displayName = "",
+  }) {
+    return JxField(
+      name,
+      name,
+      [FieldType.ftDouble, FieldType.ftMoney, FieldType.ftInteger, FieldType.ftCep].contains(type)
+          ? 1
+          : "",
+      type,
+      displayName: displayName == "" ? name : displayName,
+      dbName: name,
+      loockup: lookupTable != null,
+      lookupTable: lookupTable,
+      visible: visible,
+      readOnly: readOnly,
+      calculated: calculation.isEmpty ? false : true,
+      calculation: calculation,
+    );
+  }
+
   JxField(
     this.name,
     this.jsonName,
@@ -154,7 +191,7 @@ class JxField {
 
   @override
   String toString() {
-    final valor = _controller.text ?? "";
+    final valor = _controller.text;
     return valor;
   }
 
