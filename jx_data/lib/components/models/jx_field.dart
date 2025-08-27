@@ -46,7 +46,7 @@ class JxField {
   final String? format;
   final String tip;
   final bool calculated;
-  final String calculation;
+  final List<String> calculation;
   dynamic _value;
 
   static JxField createField({
@@ -112,7 +112,7 @@ class JxField {
     this.loockup = false,
     this.match, // Adiciona o campo match ao construtor para inicialização.
     this.calculated = false,
-    this.calculation = "",
+    this.calculation = const [],
     TextEditingController? controller,
   }) : _controller = controller ?? TextEditingController() {
     if (loockup && lookupTable == null) {

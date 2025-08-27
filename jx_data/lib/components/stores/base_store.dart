@@ -262,7 +262,7 @@ abstract class BaseStore with ChangeNotifier {
         value = formatCurrency.format(value ?? 0);
       } else if (item.calculated &&
           (item.type == FieldType.ftDouble || item.type == FieldType.ftInteger)) {
-        value = double.tryParse(item.calculation) ?? 0;
+        value = _calculateFormula(item.calculation);
       } else {}
 
       field(item.name).controller.text = value != null ? "$value" : "";
@@ -271,6 +271,51 @@ abstract class BaseStore with ChangeNotifier {
     log("updateController recno $recno");
 
     notifyListeners();
+  }
+
+  /// Interpreta a fórmula e faz o cálculo
+  /// A fórmula deve ser uma lista de strings. O primeiro elemento é o
+  /// valor inicial, e os subsequentes são pares [operador, campo].
+  /// Exemplo: ['atual', '-', 'anterior'] ou ['atual', '-', 'anterior', '*', 'tamanho']
+  int _calculateFormula(List<String> formula) {
+    // A fórmula deve ter pelo menos 3 elementos e um número ímpar de elementos.
+    if (formula.length < 3 || formula.length % 2 != 1) {
+      return 0;
+    }
+
+    // 1. Pega o valor inicial do primeiro campo.
+    int result = int.tryParse(field(formula[0]).value.toString()) ?? 0;
+
+    // 2. Itera sobre a lista, pegando os operadores e campos em pares.
+    for (int i = 1; i < formula.length; i += 2) {
+      final operator = formula[i];
+      final fieldName = formula[i + 1];
+
+      final value = int.tryParse(field(fieldName).value.toString()) ?? 0;
+
+      switch (operator) {
+        case '+':
+          result += value;
+          break;
+        case '-':
+          result -= value;
+          break;
+        case '*':
+          result *= value;
+          break;
+        case '/':
+          if (value == 0) {
+            result = 0;
+          } else {
+            result ~/= value;
+          }
+          break;
+        default:
+          return 0; // Operador inválido.
+      }
+    }
+
+    return result;
   }
 
   Future<void> updateDataByController() async {
