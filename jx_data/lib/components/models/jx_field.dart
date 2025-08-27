@@ -45,6 +45,8 @@ class JxField {
   final JxField? match; // Garantir que este campo seja inicializado.
   final String? format;
   final String tip;
+  final bool calculated;
+  final String calculation;
   dynamic _value;
 
   static JxField createField({
@@ -62,6 +64,8 @@ class JxField {
     int decimals = 0,
     bool visible = true,
     readOnly = false,
+    calculated = false,
+    calculation = "",
   }) {
     return JxField(
       name,
@@ -78,6 +82,8 @@ class JxField {
       decimals: decimals,
       visible: visible,
       readOnly: readOnly,
+      calculated: calculated,
+      calculation: calculation,
     );
   }
 
@@ -105,6 +111,8 @@ class JxField {
     this.tip = "",
     this.loockup = false,
     this.match, // Adiciona o campo match ao construtor para inicialização.
+    this.calculated = false,
+    this.calculation = "",
     TextEditingController? controller,
   }) : _controller = controller ?? TextEditingController() {
     if (loockup && lookupTable == null) {
@@ -174,6 +182,8 @@ class JxField {
       tip: other.tip,
       loockup: other.loockup,
       lookupTable: other.lookupTable,
+      calculated: other.calculated,
+      calculation: other.calculation,
       controller: TextEditingController.fromValue(TextEditingValue(text: other._value.toString())),
     );
   }
@@ -265,6 +275,8 @@ class JxField {
         match: props['match'],
         loockup: props['lookup'],
         lookupTable: props['lookupTable'],
+        calculated: props['calculated'],
+        calculation: props['calculation'],
       );
     }).toList();
   }

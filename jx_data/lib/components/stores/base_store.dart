@@ -260,7 +260,11 @@ abstract class BaseStore with ChangeNotifier {
           value = 0;
         }
         value = formatCurrency.format(value ?? 0);
+      } else if (item.calculated &&
+          (item.type == FieldType.ftDouble || item.type == FieldType.ftInteger)) {
+        value = double.tryParse(item.calculation) ?? 0;
       } else {}
+
       field(item.name).controller.text = value != null ? "$value" : "";
     }
 
@@ -274,6 +278,10 @@ abstract class BaseStore with ChangeNotifier {
     for (final item in mdl) {
       final v = item.controller.text;
       dynamic value;
+
+      if (item.readOnly || item.calculated) {
+        return;
+      }
 
       if (item.isMoney || item.isDouble) {
         value = func.doubleRawValue(v);
