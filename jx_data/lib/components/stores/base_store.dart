@@ -156,7 +156,8 @@ abstract class BaseStore with ChangeNotifier {
         beforeRefresh();
 
         if (!_dataList.isNotEmpty) {
-          throw Exception('O resultado da pesquisa está vazio!');
+          log('O resultado da pesquisa está vazio!');
+          return false;
         }
         log("listas");
 
