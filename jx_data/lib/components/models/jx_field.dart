@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jx_data/components/utils/constant.dart';
@@ -94,10 +95,10 @@ class JxField {
   ///
   /// Exemplo de uso:
   /// ```dart
-  /// final nomeCampo = JxField.from("nome", FieldType.ftString);
+  /// final nomeCampo = JxField.of("nome", FieldType.ftString);
   /// print(nomeCampo.value); // Saída: ""
   /// ```
-  static JxField withDefaults(
+  factory JxField.of(
     String name,
     FieldType type, {
     dynamic lookupTable,
