@@ -94,27 +94,32 @@ class JxModel {
   }
 
   static List<JxField> json2Field(Map<String, dynamic> json, List<JxField> fields) {
-    //--print(json);
-    // Converte as chaves do JSON para minúsculas uma única vez.
+    // Converte as chaves do JSON para minúsculas uma única vez para otimização.
     final jsonLowercase = json.map((k, v) => MapEntry(k.toLowerCase(), v));
-    //--print("Lowercase $jsonLowercase");
-    // Transforma os fields baseando-se nos valores correspondentes do jsonLowercase.
+
+    // Transforma os fields, mapeando os valores do JSON.
     return fields.map((field) {
+      // Se o campo for calculado, retorna-o diretamente sem processar.
+      if (field.calculated) {
+        return field;
+      }
+
       final key = field.jsonName.toLowerCase();
       dynamic value = jsonLowercase[key];
-      //--print("${field.jsonName} => $value");
 
       // Lança uma exceção se o valor correspondente não for encontrado.
+      // Isso é crucial para garantir a integridade dos dados.
       if (value == null) {
-        throw Exception('O campo ${field.jsonName} não foi encontrado na tabela.');
+        throw Exception('O campo "${field.jsonName}" não foi encontrado na tabela.');
       }
 
       // Tenta converter o valor para DateTime se o tipo do campo for ftDate ou ftDateTime.
+      // O uso de `is` garante que a conversão seja segura.
       if (field.type == FieldType.ftDate || field.type == FieldType.ftDateTime) {
         value = _parseDateTime(value);
       }
 
-      // Retorna uma nova instância de JxField com o valor atualizado.
+      // Cria uma nova instância de JxField com o valor atualizado.
       return JxField.from(field..value = value);
     }).toList();
   }
