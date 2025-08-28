@@ -114,7 +114,7 @@ class JxField {
           ? 1
           : "",
       type,
-      displayName: displayName == "" ? name : displayName,
+      displayName: displayName == "" ? transformName(name) : displayName,
       dbName: name,
       loockup: lookupTable != null,
       lookupTable: lookupTable,

@@ -15,6 +15,10 @@ class JxModel {
 
   List<JxField>? get fields => _fields;
 
+  String? _tableName;
+
+  String get tableName => _tableName ?? "";
+
   set fields(List<JxField>? newFields) => _fields = newFields;
 
   dynamic operator [](String fieldName) {
