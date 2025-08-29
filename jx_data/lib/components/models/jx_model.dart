@@ -18,6 +18,7 @@ class JxModel {
   String? _tableName;
 
   String get tableName => _tableName ?? "";
+  set tableName(String v) => _tableName;
 
   set fields(List<JxField>? newFields) => _fields = newFields;
 
