@@ -267,7 +267,7 @@ class JxField {
       case FieldType.ftInteger:
         return int.tryParse(value.toString());
       case FieldType.ftBool:
-        return (value == true);
+        return value ? 1 : 0;
       case FieldType.ftDouble:
       case FieldType.ftMoney:
         {
