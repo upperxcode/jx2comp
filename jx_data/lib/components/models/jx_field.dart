@@ -156,7 +156,7 @@ class JxField {
     if (loockup && lookupTable == null) {
       throw ArgumentError('Para campos do tipo ftLookup, o lookupTable deve ser definido.');
     }
-    _controller.text = value.toString();
+    _controller.text = value?.toString() ?? '';
 
     _value = value;
   }
