@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
+import 'package:flutter/material.dart';
 import 'package:jx_utils/jx_utils.dart';
 
 import 'jx_field.dart';
@@ -111,6 +112,8 @@ class JxModel {
 
       final key = field.jsonName.toLowerCase();
       dynamic value = jsonLowercase[key];
+
+      debugPrint("key = $key value = $value");
 
       // Lança uma exceção se o valor correspondente não for encontrado.
       // Isso é crucial para garantir a integridade dos dados.
