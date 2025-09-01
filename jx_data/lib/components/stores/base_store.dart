@@ -500,6 +500,9 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   JxField field(String fieldName) {
+    if (_items.isEmpty) {
+      return model[0]; // ou você pode lançar uma exceção mais específica
+    }
     final List<JxField> mdl = _items[recno].fields ?? [];
 
     for (var item in mdl) {
