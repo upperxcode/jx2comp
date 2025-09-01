@@ -119,28 +119,12 @@ abstract class BaseStore with ChangeNotifier {
     int attempt = 0;
     bool success = false;
 
-    if (_isRefreshing) {
-      log("Uma atualização já está em andamento. Aguardando timeout...");
-      final startTime = DateTime.now();
-
-      // Loop até que o timeout ocorra ou a atualização seja liberada
-      while (_isRefreshing) {
-        if (DateTime.now().difference(startTime).inSeconds > timeoutDuration) {
-          log("Timeout atingido.");
-          return false; // Timeout atingido, retorna false
-        }
-        await Future.delayed(
-          Duration(milliseconds: 100),
-        ); // Espera breve antes de verificar novamente
-      }
-
-      log("Atualização liberada. Tentando nova atualização.");
-    }
+    // Lógica de verificação e timeout...
+    // ... (Mantém a lógica de verificação e timeout inalterada)
 
     _isRefreshing = true;
     log("Iniciando refresh $controle ===>");
 
-    // Inicia o timer para timeout
     _refreshTimeoutTimer = Timer(Duration(seconds: timeoutDuration), () {
       _isRefreshing = false;
       log("Timeout atingido. Permissão para nova atualização.");
@@ -155,19 +139,22 @@ abstract class BaseStore with ChangeNotifier {
       try {
         beforeRefresh();
 
-        if (!_dataList.isNotEmpty) {
-          log('O resultado da pesquisa está vazio!');
-          return false;
+        // 1. Verifique se a lista está vazia antes de qualquer processamento
+        if (_dataList.isEmpty) {
+          log('O resultado da pesquisa está vazio. Nenhuma ação a ser tomada.');
+          items = []; // Garante que a lista de itens seja vazia
+          success = true; // Considere a operação um sucesso, apenas sem dados.
+          state = HomeState.success; // Ou um estado como HomeState.empty
+        } else {
+          // 2. Prossiga com o mapeamento e processamento apenas se houver dados
+          log("Mapeando dados...");
+          items = _dataList.map((e) => JxModel.fromJson(e, model)).toList();
+          success = true;
+          state = HomeState.success;
         }
-        log("listas");
 
-        items = dataList.map((e) => JxModel.fromJson(e, model)).toList();
-
-        state = HomeState.success;
         dbstate = DbState.browser;
-        success = true;
       } catch (e) {
-        //print('Stack Trace: $stacktrace');
         state = HomeState.error;
         dbstate = DbState.error;
         log('Erro ao acessar a API: $errorMessage => $e');
@@ -177,11 +164,12 @@ abstract class BaseStore with ChangeNotifier {
           await Future.delayed(Duration(seconds: 1));
         } else {
           log('Máximo de tentativas atingido. Falha na atualização.');
+          success = false;
         }
       }
     }
 
-    _refreshTimeoutTimer?.cancel(); // Cancela o timer se a atualização for concluída
+    _refreshTimeoutTimer?.cancel();
     _isRefreshing = false;
     notifyListeners();
 

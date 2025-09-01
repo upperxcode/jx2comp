@@ -110,22 +110,17 @@ class JxModel {
       }
 
       final key = field.jsonName.toLowerCase();
+      dynamic value = jsonLowercase[key];
 
-      // 1. Acesso seguro ao valor. Use .containsKey para verificar a existência
-      // da chave e evitar exceções se a chave estiver faltando.
-      // O valor será null se a chave não existir.
-      dynamic value = jsonLowercase.containsKey(key) ? jsonLowercase[key] : null;
-
-      // 2. Lógica para campos que não podem ser nulos.
-      // Lança uma exceção somente se o campo for notNull e o valor for null.
-      // Isso é útil para campos obrigatórios (ex: 'id').
-      if (field.notNull && value == null) {
-        throw Exception('O campo "${field.jsonName}" é obrigatório e não foi encontrado no JSON.');
+      // Lança uma exceção se o valor correspondente não for encontrado.
+      // Isso é crucial para garantir a integridade dos dados.
+      if (value == null) {
+        throw Exception('O campo "${field.jsonName}" não foi encontrado na tabela.');
       }
 
       // Tenta converter o valor para DateTime se o tipo do campo for ftDate ou ftDateTime.
       // O uso de `is` garante que a conversão seja segura.
-      if (value != null && (field.type == FieldType.ftDate || field.type == FieldType.ftDateTime)) {
+      if (field.type == FieldType.ftDate || field.type == FieldType.ftDateTime) {
         value = _parseDateTime(value);
       }
 
