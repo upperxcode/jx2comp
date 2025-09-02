@@ -1,3 +1,5 @@
+// arquivo: jx_search_dropdown.dart
+
 import 'dart:developer';
 import 'package:flutter/material.dart';
 
@@ -8,6 +10,10 @@ import 'package:jx_data/components/models/jx_field.dart';
 import '../field_title.dart';
 import '../utils.dart';
 import 'search_dropdown.dart';
+
+abstract class Lookup {
+  Future<List<Map<String, dynamic>>> loadData();
+}
 
 class JxSearchDropdown extends StatefulWidget {
   final JxField field;
@@ -37,27 +43,36 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
   @override
   void initState() {
     super.initState();
-    _lookupTableFuture = _initLookupTable();
+    _lookupTableFuture = _loadAndFormatData();
   }
-  /*
-  Future<Map<int, String>?> _initLookupTable() async {
-    await widget.field.lookupTable?.refresh(widget.label);
-    return widget.field.lookupTable?.toLookupMap("id", "nome", widget.label);
-  }
-*/
 
-  Future<Map<int, String>?> _initLookupTable() async {
-    print('Iniciando refhesh dropDown ${widget.label}');
+  Future<Map<int, String>?> _loadAndFormatData() async {
+    log('Iniciando carregamento de dados para dropDown ${widget.label}');
     try {
-      await widget.field.lookupTable?.refresh(widget.label);
-      log('Refresh concluído');
-    } catch (e) {
-      log('Erro ao atualizar lookupTable: $e');
+      final lookup = widget.field.lookupTable as Lookup?;
+      if (lookup == null) {
+        log('Aviso: lookupTable é nulo para o campo ${widget.label}');
+        return null;
+      }
+
+      // Chama o método loadData() da interface Lookup para obter os dados brutos.
+      final List<Map<String, dynamic>> rawData = await lookup.loadData();
+      log('Dados brutos carregados: ${rawData.length} registros.');
+
+      // Converte a lista de mapas brutos para um formato de lookup.
+      final Map<int, String> lookupMap = {};
+      for (var item in rawData) {
+        // Use 'id' e 'nome' para o mapeamento
+        final int id = item['id'];
+        final String nome = item['nome'];
+        lookupMap[id] = nome;
+      }
+      log('Mapeamento concluído.');
+      return lookupMap;
+    } catch (e, stacktrace) {
+      log('Erro ao carregar e formatar dados: $e', stackTrace: stacktrace);
       return null;
     }
-    final lookupMap = widget.field.lookupTable?.toLookupMap("id", "nome", widget.label);
-    print('concluindo refresh dropDown ${widget.label}');
-    return lookupMap;
   }
 
   @override
@@ -76,7 +91,7 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
             builder: (BuildContext context, AsyncSnapshot<Map<int, String>?> snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.hasError) {
-                  return const Text('Erro ao carregar os dados.');
+                  return Text('Erro ao carregar os dados: ${snapshot.error}');
                 }
                 return buildSearchableDropdown(isMobile, snapshot.data ?? const {});
               } else {
@@ -89,15 +104,16 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
     );
   }
 
+  // Seus outros métodos de build...
   Widget buildFieldTitle() {
     return widget.field.tip.isNotEmpty
         ? Row(
-          children: [
-            FieldTitle(widget.field.displayName ?? widget.field.name),
-            const SizedBox(width: 5),
-            BalloonTooltip(message: "${widget.field.tip}$tipMessage"),
-          ],
-        )
+            children: [
+              FieldTitle(widget.field.displayName ?? widget.field.name),
+              const SizedBox(width: 5),
+              BalloonTooltip(message: "${widget.field.tip}$tipMessage"),
+            ],
+          )
         : FieldTitle(widget.field.displayName ?? widget.field.name);
   }
 
