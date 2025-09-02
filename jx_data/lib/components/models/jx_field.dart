@@ -41,7 +41,7 @@ class JxField {
   final TextEditingController _controller;
   bool _modified = false;
   final String? displayName;
-  final Store? lookupTable;
+  final Lookup? lookupTable;
   final bool loockup;
   final JxField? match; // Garantir que este campo seja inicializado.
   final String? format;
