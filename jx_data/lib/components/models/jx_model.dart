@@ -111,22 +111,18 @@ class JxModel {
       }
 
       final key = field.jsonName.toLowerCase();
+
       dynamic value = jsonLowercase[key];
 
-      debugPrint("key = $key value = $value");
+      if (value != null) {
+        debugPrint("key = $key value = $value");
 
-      // Lança uma exceção se o valor correspondente não for encontrado.
-      // Isso é crucial para garantir a integridade dos dados.
-      if (value == null) {
-        throw Exception('O campo "${field.jsonName}" não foi encontrado na tabela.');
+        // Tenta converter o valor para DateTime se o tipo do campo for ftDate ou ftDateTime.
+        // O uso de `is` garante que a conversão seja segura.
+        if (field.type == FieldType.ftDate || field.type == FieldType.ftDateTime) {
+          value = _parseDateTime(value);
+        }
       }
-
-      // Tenta converter o valor para DateTime se o tipo do campo for ftDate ou ftDateTime.
-      // O uso de `is` garante que a conversão seja segura.
-      if (field.type == FieldType.ftDate || field.type == FieldType.ftDateTime) {
-        value = _parseDateTime(value);
-      }
-
       // Cria uma nova instância de JxField com o valor atualizado.
       return JxField.from(field..value = value);
     }).toList();
