@@ -51,11 +51,43 @@ abstract class BaseStore with ChangeNotifier {
   final Map<int, DbAction> _modified = {};
   Map<int, DbAction> get modified => _modified;
 
+  String _currentFilter = '';
+  List<JxModel> _filteredItems = [];
+  bool _isFiltered = false;
+
+  bool get isFiltered => _isFiltered;
+
+  String get currentFilter => _currentFilter;
+
+  void setFilter(String filter) {
+    _currentFilter = filter;
+
+    if (filter.isEmpty) {
+      _filteredItems = List.from(_items);
+      _isFiltered = false;
+    } else {
+      _filteredItems = _items.where((item) {
+        // Exemplo: filtrando pelo campo 'nome'
+        final name = item.fieldByName('nome')?.toString().toLowerCase() ?? '';
+        return name.contains(filter.toLowerCase());
+      }).toList();
+      _isFiltered = true;
+    }
+
+    // Atualiza o recno atual após filtrar
+    if (_filteredItems.isNotEmpty) {
+      recno = 0;
+      _updateControllerByData();
+    } else {
+      recno = -1; // Nenhum item encontrado
+    }
+  }
+
   String errorMessage = '';
 
-  int get count => _items.length;
+  int get count => isFiltered ? _filteredItems.length : _items.length;
 
-  List<JxModel> get items => [..._items];
+  List<JxModel> get items => _isFiltered ? [..._filteredItems] : [..._items];
 
   List<JxModel> listWatch() {
     notifyListeners();
@@ -66,6 +98,9 @@ abstract class BaseStore with ChangeNotifier {
     _items.clear();
     for (var item in source) {
       _items.add(item);
+    }
+    if (isFiltered) {
+      setFilter(currentFilter);
     }
   }
 
@@ -97,7 +132,8 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> toListMap(String field1, field2) async {
-    final List<Map<String, dynamic>> itemsMapList = _items.map((item) {
+    final items = isFiltered ? _filteredItems : _items;
+    final List<Map<String, dynamic>> itemsMapList = items.map((item) {
       return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
     }).toList();
     return itemsMapList;
@@ -226,8 +262,10 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void _updateControllerByData() {
-    if (_items.isEmpty) return;
-    final List<JxField> mdl = _items[recno].fields ?? [];
+    final items = isFiltered ? _filteredItems : _items;
+
+    if (items.isEmpty) return;
+    final List<JxField> mdl = items[recno].fields ?? [];
     for (var item in mdl) {
       var value = fieldByName(item.name);
       if (item.type == FieldType.ftMoney) {
@@ -435,6 +473,10 @@ abstract class BaseStore with ChangeNotifier {
     _updateControllerByData();
     dbstate = DbState.insert;
     _addModified(DbAction.insert);
+
+    if (isFiltered) {
+      setFilter(currentFilter);
+    }
   }
 
   Future<void> update() async {
@@ -460,6 +502,9 @@ abstract class BaseStore with ChangeNotifier {
   void clear() {
     _modified.clear();
     _items.clear();
+    if (isFiltered) {
+      setFilter(currentFilter);
+    }
   }
 
   void first([bool updateController = false]) {
@@ -471,7 +516,10 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void last([bool updateController = false]) {
-    recno = _items.length - 1;
+    final items = isFiltered ? _filteredItems : _items;
+
+    recno = items.length - 1;
+
     if (recno < 0) recno = 0;
     log("last");
     if (updateController) {
@@ -484,23 +532,29 @@ abstract class BaseStore with ChangeNotifier {
       _message = 'Item não encontrado!';
       last();
     }
-    if (_items.isEmpty) {
+    if (isFiltered ? _filteredItems.isEmpty : _items.isEmpty) {
       throw Exception('O resultado da pesquisa está vázio!');
     }
-    return _items[recno].fieldByName(key);
+    return isFiltered ? _filteredItems[recno].fieldByName(key) : _items[recno].fieldByName(key);
   }
 
   void setFieldByName(String key, dynamic v) {
-    _items[recno].setFieldByName(key, v);
+    isFiltered
+        ? _filteredItems[recno].setFieldByName(key, v)
+        : _items[recno].setFieldByName(key, v);
   }
 
   void changed(String fieldName, String v) {
-    _items[recno].setFieldByName(fieldName, v);
+    isFiltered
+        ? _filteredItems[recno].setFieldByName(fieldName, v)
+        : _items[recno].setFieldByName(fieldName, v);
+
     notifyListeners();
   }
 
   JxField field(String fieldName) {
-    if (_items.isEmpty) {
+    final items = (isFiltered ? _filteredItems : _items);
+    if (items.isEmpty) {
       var order = 0;
       for (var it in model) {
         if (it.name == fieldName) {
@@ -510,7 +564,7 @@ abstract class BaseStore with ChangeNotifier {
       }
       throw Exception('Field Not $fieldName Found');
     }
-    final List<JxField> mdl = _items[recno].fields ?? [];
+    final List<JxField> mdl = items[recno].fields ?? [];
 
     for (var item in mdl) {
       if (item.name == fieldName) {
@@ -521,10 +575,11 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   JxField fieldByOrder(int id) {
-    if (id > _items.length) {
+    final items = (isFiltered ? _filteredItems : _items);
+    if (id > items.length) {
       throw Exception('Field Not $id Found');
     }
-    final List<JxField> mdl = _items[recno].fields ?? [];
+    final List<JxField> mdl = items[recno].fields ?? [];
     return mdl[id];
   }
 
@@ -556,15 +611,20 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   bool next([bool updateController = false]) {
+    if (_isFiltered && _filteredItems.isEmpty) return false;
+
     int oldRec = recno;
     bool ok = false;
-    while (recno < items.length - 1) {
+
+    while (recno < (_isFiltered ? _filteredItems.length - 1 : _items.length - 1)) {
       recno++;
+      //final item = _isFiltered ? _filteredItems[recno] : _items[recno];
       if (!_isDeleted(recno)) {
         ok = true;
         break;
       }
     }
+
     if (ok) {
       if (updateController) {
         _updateControllerByData();
@@ -579,6 +639,7 @@ abstract class BaseStore with ChangeNotifier {
   bool prior([bool updateController = false]) {
     int oldRec = recno;
     bool ok = false;
+
     while (recno > 0) {
       recno--;
       if (!_isDeleted(recno)) {
@@ -586,6 +647,7 @@ abstract class BaseStore with ChangeNotifier {
         break;
       }
     }
+
     if (ok) {
       if (updateController) {
         _updateControllerByData();
