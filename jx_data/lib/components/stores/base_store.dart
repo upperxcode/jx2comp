@@ -9,6 +9,7 @@ import '../utils/constant.dart';
 import '../models/jx_model.dart';
 import '../models/jx_field.dart';
 import 'enums.dart';
+import 'filter.dart';
 
 enum DbAction { insert, update, delete }
 
@@ -51,60 +52,124 @@ abstract class BaseStore with ChangeNotifier {
   final Map<int, DbAction> _modified = {};
   Map<int, DbAction> get modified => _modified;
 
-  List<String> _currentFilter = [];
+  List<FilterExpress> _currentFilter = [];
   List<JxModel> _filteredItems = [];
   bool _isFiltered = false;
 
   bool get isFiltered => _isFiltered;
 
-  List<String> get currentFilter => [..._currentFilter];
+  List<FilterExpress> get currentFilter => [..._currentFilter];
 
   /// Define um filtro para os itens do modelo
   ///
-  /// O filtro é aplicado em todos os campos do modelo e atualiza a lista filtrada
-  /// mantendo o índice atual na primeira posição válida.
+  /// O filtro é uma lista de expressões de filtro que podem ser combinadas para criar filtros complexos.
+  /// Cada elemento da lista representa uma condição de filtro com campo, operador e valor.
+  /// Para suportar operadores lógicos, as expressões podem ser combinadas em grupos onde cada grupo
+  /// representa uma condição OR entre seus elementos.
+  /// Exemplo: [FilterExpress("condominio", FilterOperator.equal, "1"), FilterExpress("nome", FilterOperator.contains, "joão")]
   ///
-  /// @param filter - Lista de strings com os textos de filtro a serem aplicados
-  void setFilter(List<String> filter) {
+  /// @param filter - Lista de expressões de filtro para aplicar
+  void setFilter(List<FilterExpress> filter) {
     _currentFilter = filter;
-    if (fields == null) {
+
+    if (filter.isEmpty) {
+      // Se o filtro estiver vazio, restaura todos os itens e reseta o filtro
+      _filteredItems = [];
+      _isFiltered = false;
+      recno = -1;
+      _updateControllerByData();
       return;
     }
 
-    if (filter.isEmpty) {
-      // Se o filtro estiver vazio, restaura todos os itens
-      _filteredItems = List.from(_items);
-      _isFiltered = false;
-    } else {
-      // Aplica o filtro em todos os itens
-      _filteredItems = _items.where((item) {
-        // Verifica se o item corresponde a pelo menos um dos filtros
-        for (var filterText in filter) {
-          if (filterText.isNotEmpty) {
-            // Verifica todos os campos do item
-            bool matches = false;
-            for (var field in fields!) {
-              final fieldValue = item.fieldByName(field.name)?.toString() ?? '';
-              if (fieldValue.toLowerCase().contains(filterText.toLowerCase())) {
-                matches = true;
-                break;
+    // Aplica os filtros
+    _filteredItems = _items.where((item) {
+      try {
+        // Processa cada expressão de filtro
+        bool matchesAll = true;
+
+        for (var filterExpr in filter) {
+          final field = filterExpr.fieldName;
+          final operator = filterExpr.operator;
+          final value = filterExpr.value;
+
+          // Obtem o valor do campo no item
+          final fieldValue = item.fieldByName(field);
+
+          if (fieldValue == null) {
+            matchesAll = false;
+            break;
+          }
+
+          // Aplica o operador de filtro
+          bool fieldMatches = false;
+
+          switch (operator) {
+            case FilterOperator.equal:
+              fieldMatches = fieldValue.toString() == value.toString();
+              break;
+            case FilterOperator.notEqual:
+              fieldMatches = fieldValue.toString() != value.toString();
+              break;
+            case FilterOperator.greaterThan:
+              if (fieldValue is num && value is num) {
+                fieldMatches = fieldValue > value;
               }
-            }
-            if (matches) return true;
+              break;
+            case FilterOperator.lessThan:
+              if (fieldValue is num && value is num) {
+                fieldMatches = fieldValue < value;
+              }
+              break;
+            case FilterOperator.greaterThanOrEqual:
+              if (fieldValue is num && value is num) {
+                fieldMatches = fieldValue >= value;
+              }
+              break;
+            case FilterOperator.lessThanOrEqual:
+              if (fieldValue is num && value is num) {
+                fieldMatches = fieldValue <= value;
+              }
+              break;
+            case FilterOperator.contains:
+              fieldMatches = fieldValue.toString().toLowerCase().contains(
+                value.toString().toLowerCase(),
+              );
+              break;
+            case FilterOperator.startsWith:
+              fieldMatches = fieldValue.toString().toLowerCase().startsWith(
+                value.toString().toLowerCase(),
+              );
+              break;
+            case FilterOperator.endsWith:
+              fieldMatches = fieldValue.toString().toLowerCase().endsWith(
+                value.toString().toLowerCase(),
+              );
+              break;
+            default:
+              fieldMatches = false;
+          }
+
+          if (!fieldMatches) {
+            matchesAll = false;
+            break;
           }
         }
-        return false;
-      }).toList();
 
-      _isFiltered = true;
-    }
+        return matchesAll;
+      } catch (e) {
+        // Em caso de erro na conversão ou processamento, ignora o item
+        return false;
+      }
+    }).toList();
+
+    _isFiltered = true;
 
     // Atualiza o recno atual após filtrar
     if (_filteredItems.isNotEmpty) {
       recno = 0;
       _updateControllerByData();
     } else {
-      recno = -1; // Nenhum item encontrado
+      recno = -1;
     }
   }
 
