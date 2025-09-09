@@ -145,8 +145,6 @@ abstract class BaseStore with ChangeNotifier {
                 value.toString().toLowerCase(),
               );
               break;
-            default:
-              fieldMatches = false;
           }
 
           if (!fieldMatches) {
@@ -181,13 +179,13 @@ abstract class BaseStore with ChangeNotifier {
 
   List<JxModel> listWatch() {
     notifyListeners();
-    return [..._items];
+    return [...items];
   }
 
   set items(List<JxModel> source) {
-    _items.clear();
+    items.clear();
     for (var item in source) {
-      _items.add(item);
+      items.add(item);
     }
     if (isFiltered) {
       setFilter(currentFilter);
@@ -207,10 +205,11 @@ abstract class BaseStore with ChangeNotifier {
 
   HomeState state = HomeState.unstate;
 
-  // get fields => _items[recno].fields;
+  // get fields => localItems[recno].fields;
   List<JxField>? get fields {
-    if (items.isNotEmpty) {
-      return _items[recno].fields;
+    final localItems = isFiltered ? _filteredItems : _items;
+    if (localItems.isNotEmpty) {
+      return localItems[recno].fields;
     }
     return model;
   }
@@ -222,8 +221,8 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> toListMap(String field1, field2) async {
-    final items = isFiltered ? _filteredItems : _items;
-    final List<Map<String, dynamic>> itemsMapList = items.map((item) {
+    final localItems = isFiltered ? _filteredItems : _items;
+    final List<Map<String, dynamic>> itemsMapList = localItems.map((item) {
       return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
     }).toList();
     return itemsMapList;
@@ -233,7 +232,8 @@ abstract class BaseStore with ChangeNotifier {
     final Map<int, String> itemsMapList = {};
 
     log("lookupMap $controle");
-    for (var el in _items) {
+    final localItems = isFiltered ? _filteredItems : _items;
+    for (var el in localItems) {
       itemsMapList[el.fieldByName(field1)] = el.fieldByName(field2);
     }
     return itemsMapList;
@@ -352,10 +352,10 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void _updateControllerByData() {
-    final items = isFiltered ? _filteredItems : _items;
+    final localItems = isFiltered ? _filteredItems : _items;
 
-    if (items.isEmpty) return;
-    final List<JxField> mdl = items[recno].fields ?? [];
+    if (localItems.isEmpty) return;
+    final List<JxField> mdl = localItems[recno].fields ?? [];
     for (var item in mdl) {
       var value = fieldByName(item.name);
       if (item.type == FieldType.ftMoney) {
@@ -436,7 +436,8 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   Future<void> updateDataByController() async {
-    final mdl = _items[recno].fields ?? [];
+    final localItems = isFiltered ? _filteredItems : _items;
+    final mdl = localItems[recno].fields ?? [];
     for (final item in mdl) {
       final v = item.controller.text;
       dynamic value;
@@ -467,7 +468,7 @@ abstract class BaseStore with ChangeNotifier {
     }
 
     notifyListeners();
-    updateData = _items[recno].field2Json();
+    updateData = localItems[recno].field2Json();
   }
 
   void cancel() {
@@ -475,7 +476,8 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void save() {
-    final List<JxField> mdl = _items[recno].fields ?? [];
+    final localItems = isFiltered ? _filteredItems : _items;
+    final List<JxField> mdl = localItems[recno].fields ?? [];
     for (var item in mdl) {
       dynamic value;
       final str = field(item.name).controller.text;
@@ -528,21 +530,23 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void _cancelAppend() {
+    final localItems = isFiltered ? _filteredItems : _items;
     if (dbstate != DbState.canceling) {
       return;
     }
     dbstate = DbState.browser;
     last();
-    _items.removeAt(recno);
+    localItems.removeAt(recno);
     _modified.remove(recno);
     recno--;
   }
 
   Future<void> append() async {
-    final JxModel mdl = _items[recno].clone();
+    final localItems = isFiltered ? _filteredItems : _items;
+    final JxModel mdl = localItems[recno].clone();
 
-    final int nextId = _items.isNotEmpty
-        ? _items.last.fields!.firstWhere((f) => f.name == 'id').value + 1
+    final int nextId = localItems.isNotEmpty
+        ? localItems.last.fields!.firstWhere((f) => f.name == 'id').value + 1
         : 1;
     final Map<String, dynamic> fieldValues = {
       'id': nextId,
@@ -556,8 +560,8 @@ abstract class BaseStore with ChangeNotifier {
       field.value = fieldValues[field.name] ?? field.value;
     }
 
-    _items.add(mdl);
-    recno = _items.length - 1;
+    localItems.add(mdl);
+    recno = localItems.length - 1;
     log("append recno $recno");
     last();
     _updateControllerByData();
@@ -590,8 +594,9 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void clear() {
+    final localItems = isFiltered ? _filteredItems : _items;
     _modified.clear();
-    _items.clear();
+    localItems.clear();
     if (isFiltered) {
       setFilter(currentFilter);
     }
@@ -606,9 +611,9 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void last([bool updateController = false]) {
-    final items = isFiltered ? _filteredItems : _items;
+    final localItems = isFiltered ? _filteredItems : _items;
 
-    recno = items.length - 1;
+    recno = localItems.length - 1;
 
     if (recno < 0) recno = 0;
     log("last");
@@ -618,33 +623,37 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   dynamic fieldByName(String key) {
+    final localItems = isFiltered ? _filteredItems : _items;
     if (recno == -1) {
       _message = 'Item não encontrado!';
       last();
     }
-    if (isFiltered ? _filteredItems.isEmpty : _items.isEmpty) {
+    if (isFiltered ? _filteredItems.isEmpty : localItems.isEmpty) {
       throw Exception('O resultado da pesquisa está vázio!');
     }
-    return isFiltered ? _filteredItems[recno].fieldByName(key) : _items[recno].fieldByName(key);
+    return isFiltered ? _filteredItems[recno].fieldByName(key) : localItems[recno].fieldByName(key);
   }
 
   void setFieldByName(String key, dynamic v) {
+    final localItems = isFiltered ? _filteredItems : _items;
     isFiltered
         ? _filteredItems[recno].setFieldByName(key, v)
-        : _items[recno].setFieldByName(key, v);
+        : localItems[recno].setFieldByName(key, v);
   }
 
   void changed(String fieldName, String v) {
+    final localItems = isFiltered ? _filteredItems : _items;
     isFiltered
         ? _filteredItems[recno].setFieldByName(fieldName, v)
-        : _items[recno].setFieldByName(fieldName, v);
+        : localItems[recno].setFieldByName(fieldName, v);
 
     notifyListeners();
   }
 
   JxField field(String fieldName) {
-    final items = (isFiltered ? _filteredItems : _items);
-    if (items.isEmpty) {
+    final localItems = isFiltered ? _filteredItems : _items;
+
+    if (localItems.isEmpty) {
       var order = 0;
       for (var it in model) {
         if (it.name == fieldName) {
@@ -654,7 +663,7 @@ abstract class BaseStore with ChangeNotifier {
       }
       throw Exception('Field Not $fieldName Found');
     }
-    final List<JxField> mdl = items[recno].fields ?? [];
+    final List<JxField> mdl = localItems[recno].fields ?? [];
 
     for (var item in mdl) {
       if (item.name == fieldName) {
@@ -665,50 +674,55 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   JxField fieldByOrder(int id) {
-    final items = (isFiltered ? _filteredItems : _items);
-    if (id > items.length) {
+    final localItems = isFiltered ? _filteredItems : _items;
+    if (id > localItems.length) {
       throw Exception('Field Not $id Found');
     }
-    final List<JxField> mdl = items[recno].fields ?? [];
+    final List<JxField> mdl = localItems[recno].fields ?? [];
     return mdl[id];
   }
 
   void orderBy(String fieldName) {
+    final localItems = isFiltered ? _filteredItems : _items;
     if (_fieldOrder == fieldName) return;
     final vField = field(fieldName);
 
     switch (vField.type) {
       case FieldType.ftInteger:
       case FieldType.ftDouble:
-        func.sortByNumber(_items, fieldName);
+        func.sortByNumber(localItems, fieldName);
         break;
       case FieldType.ftDate:
       case FieldType.ftDateTime:
-        func.sortByDate(_items, fieldName);
+        func.sortByDate(localItems, fieldName);
         break;
       case FieldType.ftString:
       default:
-        func.sortByString(_items, fieldName);
+        func.sortByString(localItems, fieldName);
     }
     _fieldOrder = fieldName;
   }
 
   void findByID(dynamic key) {
+    final order = _fieldOrder;
+    final localItems = isFiltered ? _filteredItems : _items;
     recno = 0;
     orderBy('id');
-    recno = func.binarySearch(key, _items, "id");
+    recno = func.binarySearch(key, localItems, "id");
     if (_isDeleted(recno)) next();
+    orderBy(order);
   }
 
   bool next([bool updateController = false]) {
+    final localItems = isFiltered ? _filteredItems : _items;
     if (_isFiltered && _filteredItems.isEmpty) return false;
 
     int oldRec = recno;
     bool ok = false;
 
-    while (recno < (_isFiltered ? _filteredItems.length - 1 : _items.length - 1)) {
+    while (recno < (_isFiltered ? _filteredItems.length - 1 : localItems.length - 1)) {
       recno++;
-      //final item = _isFiltered ? _filteredItems[recno] : _items[recno];
+      //final item = _isFiltered ? _filteredItems[recno] : localItems[recno];
       if (!_isDeleted(recno)) {
         ok = true;
         break;
@@ -750,11 +764,15 @@ abstract class BaseStore with ChangeNotifier {
   }
 
   void findFirst(String fieldName, dynamic key) {
+    final order = _fieldOrder;
+    final localItems = isFiltered ? _filteredItems : _items;
     recno = 0;
+
     orderBy(fieldName);
-    recno = func.binarySearch(key, _items, fieldName);
+    recno = func.binarySearch(key, localItems, fieldName);
     if (recno == -1) {
       _message = 'Item não encontrado!';
     }
+    orderBy(order);
   }
 }
