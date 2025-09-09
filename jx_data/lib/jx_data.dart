@@ -6,3 +6,4 @@ export 'components/models/jx_field.dart';
 export 'components/models/jx_model.dart';
 export 'components/widgets/dbnavigator.dart';
 export 'components/widgets/constants.dart';
+export 'components/stores/filter.dart';
