@@ -1,4 +1,17 @@
-enum NavBtn { navFirst, navPrior, navNext, navLast, navAdd, navRemove, navEdit, navSave, navCancel, navRefresh }
+enum NavBtn {
+  navFirst,
+  navPrior,
+  navNext,
+  navLast,
+  navAdd,
+  navRemove,
+  navEdit,
+  navSave,
+  navCancel,
+  navRefresh,
+  navCustom1,
+  navCustom2,
+}
 
 const List<NavBtn> completeNavBtn = [
   NavBtn.navFirst,
@@ -10,15 +23,10 @@ const List<NavBtn> completeNavBtn = [
   NavBtn.navEdit,
   NavBtn.navSave,
   NavBtn.navCancel,
-  NavBtn.navRefresh
+  NavBtn.navRefresh,
 ];
 
-const List<NavBtn> moveNavBtn = [
-  NavBtn.navFirst,
-  NavBtn.navPrior,
-  NavBtn.navNext,
-  NavBtn.navLast,
-];
+const List<NavBtn> moveNavBtn = [NavBtn.navFirst, NavBtn.navPrior, NavBtn.navNext, NavBtn.navLast];
 
 const List<NavBtn> dataNavBtn = [
   NavBtn.navAdd,
@@ -26,7 +34,7 @@ const List<NavBtn> dataNavBtn = [
   NavBtn.navEdit,
   NavBtn.navSave,
   NavBtn.navCancel,
-  NavBtn.navRefresh
+  NavBtn.navRefresh,
 ];
 
 const List<NavBtn> gridNavBtn = [
@@ -37,7 +45,7 @@ const List<NavBtn> gridNavBtn = [
   NavBtn.navAdd,
   NavBtn.navRemove,
   NavBtn.navEdit,
-  NavBtn.navRefresh
+  NavBtn.navRefresh,
 ];
 
 const minWidth = 550;
