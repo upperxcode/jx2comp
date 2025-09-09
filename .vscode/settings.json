@@ -1,3 +1,8 @@
 {
-    "localaipilot.standalone.ollamaModel": "deepcoder:latest"
+    "localaipilot.standalone.ollamaModel": "deepcoder:latest",
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#152C56",
+        "titleBar.activeBackground": "#1E3E79",
+        "titleBar.activeForeground": "#FBFCFE"
+    }
 }
