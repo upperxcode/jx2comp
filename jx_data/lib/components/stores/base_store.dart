@@ -51,26 +51,51 @@ abstract class BaseStore with ChangeNotifier {
   final Map<int, DbAction> _modified = {};
   Map<int, DbAction> get modified => _modified;
 
-  String _currentFilter = '';
+  List<String> _currentFilter = [];
   List<JxModel> _filteredItems = [];
   bool _isFiltered = false;
 
   bool get isFiltered => _isFiltered;
 
-  String get currentFilter => _currentFilter;
+  List<String> get currentFilter => [..._currentFilter];
 
-  void setFilter(String filter) {
+  /// Define um filtro para os itens do modelo
+  ///
+  /// O filtro é aplicado em todos os campos do modelo e atualiza a lista filtrada
+  /// mantendo o índice atual na primeira posição válida.
+  ///
+  /// @param filter - Lista de strings com os textos de filtro a serem aplicados
+  void setFilter(List<String> filter) {
     _currentFilter = filter;
+    if (fields == null) {
+      return;
+    }
 
     if (filter.isEmpty) {
+      // Se o filtro estiver vazio, restaura todos os itens
       _filteredItems = List.from(_items);
       _isFiltered = false;
     } else {
+      // Aplica o filtro em todos os itens
       _filteredItems = _items.where((item) {
-        // Exemplo: filtrando pelo campo 'nome'
-        final name = item.fieldByName('nome')?.toString().toLowerCase() ?? '';
-        return name.contains(filter.toLowerCase());
+        // Verifica se o item corresponde a pelo menos um dos filtros
+        for (var filterText in filter) {
+          if (filterText.isNotEmpty) {
+            // Verifica todos os campos do item
+            bool matches = false;
+            for (var field in fields!) {
+              final fieldValue = item.fieldByName(field.name)?.toString() ?? '';
+              if (fieldValue.toLowerCase().contains(filterText.toLowerCase())) {
+                matches = true;
+                break;
+              }
+            }
+            if (matches) return true;
+          }
+        }
+        return false;
       }).toList();
+
       _isFiltered = true;
     }
 
