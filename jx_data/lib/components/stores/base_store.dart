@@ -675,7 +675,7 @@ abstract class BaseStore with ChangeNotifier {
 
   void orderBy(String fieldName) {
     if (_fieldOrder == fieldName) return;
-    final vField = (_items[recno].fieldByName(fieldName) as JxField);
+    final vField = field(fieldName);
 
     switch (vField.type) {
       case FieldType.ftInteger:
