@@ -46,8 +46,8 @@ class Dbnavigator extends StatelessWidget {
     int visibleCount = 0;
 
     // Calcula o espaço necessário para cada botão (considerando tamanho fixo)
-    const double buttonWidth = 48.0; // Largura aproximada de um botão
-    const double spacing = 8.0; // Espaçamento entre botões
+    const double buttonWidth = 36.0; // Largura aproximada de um botão
+    const double spacing = 2.0; // Espaçamento entre botões
 
     // Botões que podem ser exibidos
     final List<Widget> buttons = [];
