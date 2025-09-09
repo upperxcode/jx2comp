@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:jx2_grid/components/datagrid.dart';
 import 'package:jx2_widgets/components/dialogs/delete.dart';
@@ -42,19 +41,12 @@ class Dbnavigator extends StatelessWidget {
 
     final btnColor = JxTheme.getColor(JxColor.dbNav).foreground;
 
-    // Conta quantos botões estão visíveis atualmente
-    int visibleCount = 0;
-
-    // Calcula o espaço necessário para cada botão (considerando tamanho fixo)
-    const double buttonWidth = 36.0; // Largura aproximada de um botão
-    const double spacing = 2.0; // Espaçamento entre botões
-
     // Botões que podem ser exibidos
     final List<Widget> buttons = [];
 
-    // Primeiro, contamos quantos botões poderiam ser exibidos com base no espaço disponível
-    double availableWidth = width - 32; // Subtrai margem lateral
-    int maxButtonsCanShow = (availableWidth / (buttonWidth + spacing)).floor();
+    // Calcula o espaço necessário para cada botão com espaçamento real de 2px
+    const double buttonWidth = 48.0;
+    const double spacing = 2.0;
 
     // Botões com prioridade alta (primeiro nível)
     if (visibleBtn.contains(NavBtn.navFirst) && width > minWidth) {
@@ -68,7 +60,6 @@ class Dbnavigator extends StatelessWidget {
           },
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navPrior) && width > minWidth) {
@@ -82,7 +73,6 @@ class Dbnavigator extends StatelessWidget {
           },
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navNext) && width > minWidth) {
@@ -96,21 +86,19 @@ class Dbnavigator extends StatelessWidget {
           },
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navLast) && width > minWidth) {
       buttons.add(
         JxIconButton(
           icon: Icon(Icons.last_page, color: btnColor, size: 32),
+          tooltip: "last register",
           onPressed: () {
-            log("last $dataGrid");
             model.last(true);
             if (dataGrid != null) dataGrid!.last();
           },
         ),
       );
-      visibleCount++;
     }
 
     // Botões de ação
@@ -121,7 +109,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: insertFunc ?? () => model.append(),
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navRemove)) {
@@ -146,7 +133,6 @@ class Dbnavigator extends StatelessWidget {
           },
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navEdit)) {
@@ -156,7 +142,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: editFunc ?? () => {},
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navSave)) {
@@ -166,7 +151,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: () => model.updateDataByController(),
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navCancel)) {
@@ -180,7 +164,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: () => model.cancel(),
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navRefresh)) {
@@ -197,7 +180,6 @@ class Dbnavigator extends StatelessWidget {
           },
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navCustom1)) {
@@ -211,7 +193,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: custom1Func ?? () => {},
         ),
       );
-      visibleCount++;
     }
 
     if (visibleBtn.contains(NavBtn.navCustom2)) {
@@ -225,7 +206,6 @@ class Dbnavigator extends StatelessWidget {
           onPressed: custom2Func ?? () => {},
         ),
       );
-      visibleCount++;
     }
 
     // Apenas exibe botões se houver espaço suficiente
@@ -233,12 +213,19 @@ class Dbnavigator extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Se o número de botões visíveis for maior que o máximo permitido, ocultamos os últimos
-    List<Widget> finalButtons = buttons;
-    if (visibleCount > maxButtonsCanShow && maxButtonsCanShow > 0) {
-      finalButtons = buttons.sublist(0, maxButtonsCanShow);
-    }
+    // Calcula quantos botões cabem na largura disponível
+    double availableWidth = width - 32; // Margem de 16px de cada lado
 
-    return BaseDbNavigator(finalButtons);
+    // Para cada botão, precisamos de buttonWidth + spacing pixels
+    int maxButtonsCanFit = (availableWidth / (buttonWidth + spacing)).floor();
+
+    // Se for possível mostrar todos os botões, mostra todos
+    if (buttons.length <= maxButtonsCanFit) {
+      return BaseDbNavigator(buttons);
+    } else {
+      // Mostra apenas os primeiros botões que cabem
+      List<Widget> visibleButtons = buttons.sublist(0, maxButtonsCanFit);
+      return BaseDbNavigator(visibleButtons);
+    }
   }
 }
