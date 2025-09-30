@@ -31,10 +31,7 @@ void main() {
         httpClient: mockHttpClient,
         connectivityHelper: mockConnectivityHelper,
       );
-      mockConfig = Jx2HttpRequestConfig(
-        url: 'https://example.com/api',
-        method: Jx2HttpMethod.get,
-      );
+      mockConfig = Jx2HttpRequestConfig(url: 'https://example.com/api', method: Jx2HttpMethod.get);
     });
 
     // Função de parser de exemplo
@@ -44,24 +41,25 @@ void main() {
       } else if (T == Map<String, dynamic>) {
         return (data as Map).cast<String, dynamic>() as T;
       }
+
       throw Exception('Unsupported type for mock parser');
     }
 
     // ***************************
-    test(
-        'request should return success with parsed data on successful GET request',
-        () async {
+    test('request should return success with parsed data on successful GET request', () async {
       mockConfig = mockConfig.copyWith(method: Jx2HttpMethod.get);
 
-      when(() => mockConnectivityHelper.checkInternetConnection())
-          .thenAnswer((_) async => true);
-      when(() => mockHttpClient.get(any(),
-              queryParameters: any(named: 'queryParameters')))
-          .thenAnswer((_) async => HttpResponse(
-              data: {"key": "value"},
-              statusCode: 200,
-              headers: {},
-              requestOptions: RequestOptions(path: mockConfig.url)));
+      when(() => mockConnectivityHelper.checkInternetConnection()).thenAnswer((_) async => true);
+      when(
+        () => mockHttpClient.get(any(), queryParameters: any(named: 'queryParameters')),
+      ).thenAnswer(
+        (_) async => HttpResponse(
+          data: {"key": "value"},
+          statusCode: 200,
+          headers: {},
+          requestOptions: RequestOptions(path: mockConfig.url),
+        ),
+      );
 
       final result = await service.request<Map<String, dynamic>>(
         config: mockConfig,
@@ -74,17 +72,15 @@ void main() {
       expect(result.data, isA<Map<String, dynamic>>());
       expect(result.data, {'key': 'value'});
       verify(() => mockConnectivityHelper.checkInternetConnection()).called(1);
-      verify(() => mockHttpClient.get(mockConfig.url,
-          queryParameters: mockConfig.queryParameters)).called(1);
+      verify(
+        () => mockHttpClient.get(mockConfig.url, queryParameters: mockConfig.queryParameters),
+      ).called(1);
     });
     // ***************************
-    test(
-        'request should return error on failed GET request with no internet connection',
-        () async {
+    test('request should return error on failed GET request with no internet connection', () async {
       mockConfig = mockConfig.copyWith(method: Jx2HttpMethod.get);
 
-      when(() => mockConnectivityHelper.checkInternetConnection())
-          .thenAnswer((_) async => false);
+      when(() => mockConnectivityHelper.checkInternetConnection()).thenAnswer((_) async => false);
 
       final result = await service.request<Map<String, dynamic>>(
         config: mockConfig,
@@ -97,22 +93,22 @@ void main() {
     });
     // ***************************
 
-    test(
-        'request should return success with parsed data on successful POST request',
-        () async {
+    test('request should return success with parsed data on successful POST request', () async {
       mockConfig = mockConfig.copyWith(method: Jx2HttpMethod.post);
 
-      when(() => mockConnectivityHelper.checkInternetConnection())
-          .thenAnswer((_) async => true);
+      when(() => mockConnectivityHelper.checkInternetConnection()).thenAnswer((_) async => true);
 
-      when(() => mockHttpService.request<Map<String, dynamic>>(
-              config: mockConfig, parser: _mockParser))
-          .thenAnswer((_) async => Jx2ResultModel<Map<String, dynamic>>(
-                Jx2ResultStatus.success,
-                {'key': 'value'},
-                'Error',
-                'Sem conexão com a internet',
-              ));
+      when(
+        () =>
+            mockHttpService.request<Map<String, dynamic>>(config: mockConfig, parser: _mockParser),
+      ).thenAnswer(
+        (_) async => Jx2ResultModel<Map<String, dynamic>>(
+          Jx2ResultStatus.success,
+          {'key': 'value'},
+          'Error',
+          'Sem conexão com a internet',
+        ),
+      );
 
       final result = await mockHttpService.request<Map<String, dynamic>>(
         config: mockConfig,
@@ -126,13 +122,10 @@ void main() {
       expect(result.data, {'key': 'value'});
     });
     // ***************************
-    test(
-        'request should return error on failed POS request with no internet connection',
-        () async {
+    test('request should return error on failed POS request with no internet connection', () async {
       mockConfig = mockConfig.copyWith(method: Jx2HttpMethod.post);
 
-      when(() => mockConnectivityHelper.checkInternetConnection())
-          .thenAnswer((_) async => false);
+      when(() => mockConnectivityHelper.checkInternetConnection()).thenAnswer((_) async => false);
 
       final result = await service.request<Map<String, dynamic>>(
         config: mockConfig,

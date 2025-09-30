@@ -1,6 +1,5 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 import 'package:trina_grid/trina_grid.dart';
 
 List<TrinaColumn> columns = [
@@ -79,7 +78,7 @@ class GridExemple extends StatelessWidget {
           columns: columns,
           rows: rows,
           onChanged: (TrinaGridOnChangedEvent event) {
-            log("event $event");
+            JxLog.info("event $event");
           },
           onLoaded: (TrinaGridOnLoadedEvent event) {
             event.stateManager.setSelectingMode(TrinaGridSelectingMode.row);

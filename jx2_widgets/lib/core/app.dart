@@ -5,6 +5,8 @@ class Jx2App extends StatefulWidget {
   final ThemeData theme;
   final Widget? home;
   final Map<String, Widget Function(BuildContext)>? routes;
+  final Map<String, dynamic>? profileData;
+  final GlobalKey<ScaffoldMessengerState>? scaffoldMessengerKey;
 
   const Jx2App({
     super.key,
@@ -12,6 +14,8 @@ class Jx2App extends StatefulWidget {
     required this.theme,
     this.home,
     this.routes,
+    this.profileData,
+    this.scaffoldMessengerKey,
   });
 
   @override
@@ -22,6 +26,7 @@ class _AppState extends State<Jx2App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: widget.scaffoldMessengerKey,
       title: widget.title,
       theme: widget.theme,
       home: widget.home,

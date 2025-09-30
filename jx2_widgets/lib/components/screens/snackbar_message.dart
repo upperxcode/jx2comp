@@ -62,7 +62,7 @@ void snackMessage(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          constraints: const BoxConstraints(maxHeight: 22.0),
+          constraints: const BoxConstraints(maxHeight: 50.0),
           child: TweenAnimationBuilder(
             tween: Tween<double>(begin: 0, end: second * 1000.toDouble()),
             duration: Duration(seconds: second),
@@ -81,19 +81,16 @@ void snackMessage(
                       backgroundColor: Colors.white,
                     ),
                   ),
-                  Center(
-                    child: Text(
-                      (second - (value / 1000)).toInt().toString(),
-                      textScaleFactor: 0.85,
-                    ),
-                  ),
+                  Center(child: Text((second - (value / 1000)).toInt().toString())),
                 ],
               );
             },
           ),
         ),
         const SizedBox(width: 12.0),
-        Expanded(child: Text(contentText)),
+        Expanded(
+          child: Text(contentText, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        ),
         InkWell(
           splashColor: Colors.white,
           onTap: () {

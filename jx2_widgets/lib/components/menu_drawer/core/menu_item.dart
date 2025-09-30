@@ -5,20 +5,22 @@ abstract class MenuEntry {}
 class MenuItem implements MenuEntry {
   final String title;
   final IconData icon;
-  final String route;
+  final String? route;
+  final Function(dynamic)? func;
   final Color? color;
   final Color? textColor;
 
   MenuItem({
     required this.title,
     required this.icon,
-    required this.route,
+    this.route,
+    this.func,
     this.textColor = Colors.black,
     this.color = Colors.white24,
   });
 }
 
-class MenuSection implements MenuEntry{
+class MenuSection implements MenuEntry {
   final String sectionTitle;
   final List<MenuItem> items;
   final Color? color;
@@ -31,3 +33,5 @@ class MenuSection implements MenuEntry{
     this.color = Colors.white24,
   });
 }
+
+void defaultFunc(dynamic v) => {};

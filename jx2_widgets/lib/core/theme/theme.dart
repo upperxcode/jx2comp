@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:jx2_widgets/core/theme/enums.dart';
 import 'package:jx2_widgets/core/theme/jx_theme.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 
 class AppTheme {
   static AppThemeMode _currentThemeMode = AppThemeMode.light; // Variável estática para o tema atual
@@ -25,7 +26,7 @@ class AppTheme {
           return purpleTheme;
       }
     } catch (e) {
-      log(e.toString());
+      JxLog.error(e.toString());
     }
     throw Exception('Invalid AppThemeMode: $_currentThemeMode');
   }

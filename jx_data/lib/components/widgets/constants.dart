@@ -28,6 +28,14 @@ const List<NavBtn> completeNavBtn = [
 
 const List<NavBtn> moveNavBtn = [NavBtn.navFirst, NavBtn.navPrior, NavBtn.navNext, NavBtn.navLast];
 
+const List<NavBtn> moveAndCustomBtn = [
+  NavBtn.navFirst,
+  NavBtn.navPrior,
+  NavBtn.navNext,
+  NavBtn.navLast,
+  NavBtn.navCustom1,
+];
+
 const List<NavBtn> dataNavBtn = [
   NavBtn.navAdd,
   NavBtn.navRemove,

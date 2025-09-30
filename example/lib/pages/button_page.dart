@@ -19,11 +19,7 @@ class ButtonPage extends StatelessWidget {
         children: [
           Text('Welcome to the Button Example Page'),
           SizedBox(height: 30),
-          Jx2ElevatedButton(
-            text: 'Primário',
-            icon: Icons.access_alarm,
-            onPressed: () {},
-          ),
+          Jx2ElevatedButton(text: 'Primário', icon: Icons.access_alarm, onPressed: () {}),
           SizedBox(height: 20),
           circularbuttonOrage(),
           SizedBox(height: 20),
@@ -49,11 +45,7 @@ class ButtonPage extends StatelessWidget {
           ),
           SizedBox(height: 20),
           const SizedBox(height: 16),
-          Jx2TextButton(
-            text: 'Texto',
-            type: Jx2ButtonType.danger,
-            onPressed: () {},
-          ),
+          Jx2TextButton(text: 'Texto', type: Jx2ButtonType.danger, onPressed: () {}),
           SizedBox(height: 20),
           cirularButtonPressionado(),
           SizedBox(height: 40),

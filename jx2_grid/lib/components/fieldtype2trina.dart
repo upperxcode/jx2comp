@@ -14,7 +14,7 @@ TrinaColumnType type2Trina(
     case FieldType.ftDate:
       return TrinaColumnType.date(format: format ?? "dd-MM-yyyy");
     case FieldType.ftDateTime:
-      return TrinaColumnType.time();
+      return TrinaColumnType.date(format: format ?? "dd-MM-yyyy HH:mm");
     case FieldType.ftDouble:
     case FieldType.ftMoney:
       return TrinaColumnType.currency(
@@ -22,6 +22,11 @@ TrinaColumnType type2Trina(
         locale: countryLocale ?? "pt_BR",
         decimalDigits: decimalsDigits ?? 2,
       );
+    case FieldType.ftTelefone:
+      return TrinaColumnType.text();
+    case FieldType.ftCep:
+      return TrinaColumnType.text();
+
     default:
       return TrinaColumnType.text();
   }

@@ -25,7 +25,7 @@ TextStyle jxFormTextStyleLabel() {
 TextStyle jxFormTextStyleFloat() {
   return TextStyle(
     color: JxTheme.getColor(JxColor.formTextFace).foreground,
-    backgroundColor: Colors.transparent,
+    backgroundColor: JxTheme.getColor(JxColor.formTextFace).background,
     fontSize: 16,
     fontWeight: FontWeight.bold,
     height: 1,

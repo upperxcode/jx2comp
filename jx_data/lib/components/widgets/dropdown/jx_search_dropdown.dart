@@ -1,19 +1,14 @@
-// arquivo: jx_search_dropdown.dart
-
-import 'dart:developer';
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
-
 import 'package:jx2_widgets/components/screens/balloon_tooltips.dart';
 import 'package:jx2_widgets/components/styles/form_text_style.dart';
 import 'package:jx2_widgets/core/theme.dart';
 import 'package:jx_data/components/models/jx_field.dart';
+import 'package:jx_utils/logs/jx_log.dart';
+
 import '../field_title.dart';
 import '../utils.dart';
 import 'search_dropdown.dart';
-
-abstract class Lookup {
-  Future<List<Map<String, dynamic>>> loadData();
-}
 
 class JxSearchDropdown extends StatefulWidget {
   final JxField field;
@@ -21,6 +16,8 @@ class JxSearchDropdown extends StatefulWidget {
   final String selectedItem;
   final FocusNode focusNode;
   final void Function() showModal;
+  final void Function(String)? onChanged;
+  final List<Map<String, dynamic>>? items; // Novo parâmetro opcional
 
   const JxSearchDropdown({
     super.key,
@@ -29,6 +26,8 @@ class JxSearchDropdown extends StatefulWidget {
     required this.selectedItem,
     required this.focusNode,
     required this.showModal,
+    this.onChanged,
+    this.items,
   });
 
   @override
@@ -37,6 +36,8 @@ class JxSearchDropdown extends StatefulWidget {
 
 class _JxSearchDropdownState extends State<JxSearchDropdown> {
   late Future<Map<int, String>?> _lookupTableFuture;
+  final GlobalKey<SearchableDropdownState> _searchableDropdownKey =
+      GlobalKey<SearchableDropdownState>();
   final tipMessage =
       'Click sobre o campo para abrir as opções.\n Use o botão de clear para limpar o campo e mostrar tudo.\n Digite para filtrar os items.\n Os botões de adição só apacerem ao digitar no campo.\n Para adicionar um novo item digitado tecle enter.\n Para fazer update click no icone de update';
 
@@ -46,18 +47,33 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
     _lookupTableFuture = _loadAndFormatData();
   }
 
-  Future<Map<int, String>?> _loadAndFormatData() async {
-    log('Iniciando carregamento de dados para dropDown ${widget.label}');
-    try {
-      final lookup = widget.field.lookupTable as Lookup?;
-      if (lookup == null) {
-        log('Aviso: lookupTable é nulo para o campo ${widget.label}');
-        return null;
-      }
+  @override
+  void didUpdateWidget(covariant JxSearchDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedItem != oldWidget.selectedItem) {
+      // A recriação do widget via ValueKey cuidará da atualização.
+      // A lógica complexa aqui não é mais necessária e era a fonte do erro.
+    }
+  }
 
-      // Chama o método loadData() da interface Lookup para obter os dados brutos.
-      final List<Map<String, dynamic>> rawData = await lookup.loadData();
-      log('Dados brutos carregados: ${rawData.length} registros.');
+  Future<Map<int, String>?> _loadAndFormatData() async {
+    JxLog.info('Iniciando carregamento de dados para dropDown ${widget.label}');
+    List<Map<String, dynamic>> rawData = [];
+
+    try {
+      // Se os itens forem passados diretamente, use-os.
+      if (widget.items != null) {
+        rawData = widget.items!;
+      } else {
+        // Caso contrário, use a lógica original do lookupTable.
+        final lookup = widget.field.lookupTable;
+        if (lookup == null) {
+          JxLog.info('Aviso: lookupTable é nulo para o campo ${widget.label}');
+          return null;
+        }
+        rawData = await lookup.loadData();
+      }
+      JxLog.info('Dados brutos carregados: ${rawData.length} registros.');
 
       // Converte a lista de mapas brutos para um formato de lookup.
       final Map<int, String> lookupMap = {};
@@ -67,10 +83,10 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
         final String nome = item['nome'];
         lookupMap[id] = nome;
       }
-      log('Mapeamento concluído.');
+      JxLog.info('Mapeamento concluído.');
       return lookupMap;
     } catch (e, stacktrace) {
-      log('Erro ao carregar e formatar dados: $e', stackTrace: stacktrace);
+      JxLog.info('Erro ao carregar e formatar dados: $e $stacktrace');
       return null;
     }
   }
@@ -118,15 +134,19 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
   }
 
   Widget buildSearchableDropdown(bool isMobile, Map<int, String> lookupData) {
-    return SearchableDropdown<String>(
+    return SearchableDropdown(
+      // Adicionar uma ValueKey força o Flutter a recriar este widget
+      // (e seu estado) sempre que o valor do campo mudar.
+      key: _searchableDropdownKey,
       showModal: widget.showModal,
       field: widget.field,
       focusNode: widget.focusNode,
-      fieldController: widget.field.controller,
+      fieldController: widget.field.controller, // Passa o controller do JxField
       items: lookupData,
-      displayItem: (item) => item.toString(),
+      // displayItem: (item) => item.toString(),
       height: isMobile ? 60 : 45,
       style: jxFormTextStyle(),
+      onChanged: widget.onChanged,
       decoration: buildInputDecoration(widget.field),
     );
   }
@@ -140,7 +160,18 @@ class _JxSearchDropdownState extends State<JxSearchDropdown> {
       labelStyle: jxFormTextStyleLabel(),
       errorStyle: jxErrorStyle(),
       contentPadding: padding(),
-      suffixIcon: const Icon(Icons.search, color: Colors.red),
+      prefixIcon: IconButton(
+        icon: const Icon(Icons.list_alt_outlined),
+        color: JxTheme.getColor(JxColor.formTextIcon).foreground,
+        tooltip: "Mostrar todas as opções",
+        onPressed: () {
+          _searchableDropdownKey.currentState?.showAllItems();
+        },
+      ),
+      suffixIcon: IconButton(
+        icon: const Icon(Icons.search, color: Colors.red),
+        onPressed: widget.showModal,
+      ),
       filled: true,
       border: jxFormTextBorderStyle(),
       hoverColor: JxTheme.getColor(JxColor.formTextHover).background,

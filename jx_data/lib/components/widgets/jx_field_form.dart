@@ -1,6 +1,5 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:jx2_widgets/components/icons/double_icons_row.dart';
 import 'package:jx2_widgets/components/screens/balloon_tooltips.dart';
 import 'package:jx2_widgets/components/styles/form_text_style.dart';
@@ -8,6 +7,7 @@ import 'package:jx2_widgets/components/textfields/suffix_icon.dart';
 import 'package:jx2_widgets/core/theme.dart';
 import 'package:jx_data/components/models/jx_field.dart';
 import 'package:jx_data/components/widgets/field_title.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 import '../utils/type2icon.dart';
 import '../utils/type2keyboard.dart';
 import 'format.dart';
@@ -17,12 +17,14 @@ import 'validate.dart';
 class JxFieldForm extends StatefulWidget {
   final JxField field;
   final Function(String)? onChanged;
+  final Function(String)? onEditingComplete;
   final bool? autofocus;
   final bool? readonly;
 
   const JxFieldForm(
     this.field, {
     this.onChanged,
+    this.onEditingComplete,
     this.autofocus = false,
     this.readonly = false,
     super.key,
@@ -65,26 +67,30 @@ class _JxFieldFormState extends State<JxFieldForm> {
   @override
   void initState() {
     super.initState();
-    type = widget.field.type;
+    final field = widget.field;
+    type = field.type;
     obscure = (type == FieldType.ftPassword || type == FieldType.ftPasswordConfirm);
     suffixIcon = obscure ? visibleIcon : clearIcon;
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         // Salve o valor aqui
-        saveValue(widget.field.value);
+        saveValue(field.value);
       }
     });
-    switch (type) {
-      case FieldType.ftInteger:
-        tipMessage = "Somente número são aceitos.";
-        break;
-      case FieldType.ftDouble:
-      case FieldType.ftMoney:
-        tipMessage = "Somente número são aceitos, ao confirmar a formatação será aplicada.";
-        break;
-      default:
-        tipMessage =
-            "São aceitos qualquer caracter válido, mas evite o uso de aspas por prejudicarem em futuras buscas.";
+
+    if (field.isDigit) {
+      tipMessage = "Somente número são aceitos.";
+    } else if (field.isDouble) {
+      tipMessage = "Somente número são aceitos, ao confirmar a formatação será aplicada.";
+    } else if (field.isMoney) {
+      tipMessage =
+          "Somente número são aceitos, ao confirmar a formatação será aplicada em formato moeda.";
+    } else if (field.isDateTime) {
+      tipMessage =
+          "Somente número são aceitos, ao confirmar a formatação será aplicada em formato moeda.";
+    } else {
+      tipMessage =
+          "São aceitos qualquer caracter válido, mas evite o uso de aspas por prejudicarem em futuras buscas.";
     }
   }
 
@@ -129,31 +135,36 @@ class _JxFieldFormState extends State<JxFieldForm> {
             height: isMobile() ? 60 : 45,
             child: TextFormField(
               keyboardType: type2Keyboard(type),
+              inputFormatters: format(widget.field),
               readOnly: widget.field.readOnly,
               controller: widget.field.controller,
               autofocus: widget.autofocus!,
               focusNode: focusNode,
+              textCapitalization: fieldCapitalization(widget.field.type),
+
+              onEditingComplete: () {
+                final v = widget.field.controller.text;
+                if (widget.onEditingComplete != null) {
+                  widget.onEditingComplete!(v);
+                }
+              },
 
               //initialValue: "${widget.field.value}",
               onChanged: (v) {
-                log("changed controller ${widget.field.controller.text}");
-                log("changed value $v");
-                log("changed field ${widget.field.value}");
+                JxLog.info("changed controller ${widget.field.controller.text}");
+                JxLog.info("changed value $v");
+                JxLog.info("changed field ${widget.field.value}");
 
                 setState(() {
                   // widget.field.value = v;
                   isEmpty = v.isEmpty;
-                  if (widget.onChanged != null) {
-                    widget.onChanged!(v);
-                  }
                 });
                 // Não altere o controller.text aqui para evitar seleção e substituição
               },
               maxLength: widget.field.size > 0 ? widget.field.size : null,
               obscureText: obscure,
-              validator: (value) => validate(value, widget.field, widget.field.match),
+              validator: (value) => validate(value, widget.field, widget.field.matchField),
               textAlign: widget.field.align,
-              inputFormatters: format(widget.field),
 
               style: jxFormTextStyle(),
               decoration: InputDecoration(
@@ -211,5 +222,17 @@ class _JxFieldFormState extends State<JxFieldForm> {
         ],
       ),
     );
+  }
+}
+
+TextCapitalization fieldCapitalization(FieldType type) {
+  switch (type) {
+    case FieldType.ftBool:
+    case FieldType.ftUf:
+      return TextCapitalization.words;
+    case FieldType.ftText:
+      return TextCapitalization.sentences;
+    default:
+      return TextCapitalization.none;
   }
 }

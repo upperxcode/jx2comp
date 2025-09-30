@@ -1,10 +1,8 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
-import 'package:jx2_grid/components/current_row.dart';
 import 'package:jx2_grid/components/datagrid.dart';
 import 'package:jx2_widgets/core/theme.dart';
-import 'package:jx_data/jx_data.dart';
+import 'package:jx_data/components/stores/jx_store.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 
 import 'package:trina_grid/trina_grid.dart';
 
@@ -13,15 +11,15 @@ class GridPage extends StatefulWidget {
   final Widget? dbNavigator;
   final DataGrid dataGrid;
   final bool darkMode;
-  final Color Function(CurrentRow) rowColorCallback;
+  final Color Function(int)? rowColorCallback;
 
   const GridPage({
     super.key,
     required this.dataController,
     this.dbNavigator,
     required this.dataGrid,
+    this.rowColorCallback,
     this.darkMode = false,
-    required this.rowColorCallback,
   });
 
   @override
@@ -29,32 +27,31 @@ class GridPage extends StatefulWidget {
 }
 
 class _GridPageState extends State<GridPage> {
-  late Future<void> _initDataGridFuture;
-  late TrinaGrid _dataGrid;
-
   @override
   void initState() {
     super.initState();
-    // Inicialize o futuro que carrega os dados do grid
-    log("gridPage initState");
+    // Você pode colocar aqui a lógica que precisa ser executada apenas uma vez.
+    // A inicialização do Future foi movida para o build.
     widget.dataGrid.rowColorCallback = widget.rowColorCallback;
-    _initDataGridFuture = _loadDataGrid();
-  }
-
-  Future<void> _loadDataGrid() async {
-    log("gridPage loagGrid init");
-    await widget.dataGrid.refreshGrid();
-    _dataGrid = widget.dataGrid.datagrid();
-    log("gridPage loagGrid finally");
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initDataGridFuture,
+    // Usa FutureBuilder para lidar com o Future<TrinaGrid>
+    return FutureBuilder<TrinaGrid>(
+      // Chamada direta para o método que retorna o Future
+      future: widget.dataGrid.datagrid(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          // Apenas construa o widget DataGrid após a inicialização estar completa.
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Mostra um indicador de carregamento enquanto espera
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          // Mostra uma mensagem de erro se a operação falhar
+          JxLog.info("GridPage FutureBuilder error: ${snapshot.error}");
+          return Center(child: Text('Erro ao carregar os dados: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          // O Future está completo, o 'snapshot.data' contém o TrinaGrid
+          final TrinaGrid trinaGrid = snapshot.data!;
           return Container(
             color: JxTheme.getColor(JxColor.panel).background,
             padding: const EdgeInsets.all(2),
@@ -63,16 +60,15 @@ class _GridPageState extends State<GridPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
-                  Expanded(flex: 11, child: _dataGrid),
-                  //const SizedBox(height: 2),
+                  Expanded(flex: 11, child: trinaGrid),
                   if (widget.dbNavigator != null) Flexible(flex: 1, child: widget.dbNavigator!),
                 ],
               ),
             ),
           );
         } else {
-          // Alternativamente, mostre um indicador de carregamento enquanto os dados estão sendo preparados
-          return const Center(child: CircularProgressIndicator());
+          // Se não houver dados
+          return const Center(child: Text('Nenhum dado disponível.'));
         }
       },
     );

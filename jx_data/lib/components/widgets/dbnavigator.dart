@@ -5,9 +5,10 @@ import 'package:jx2_widgets/components/inputs/buttons/icon_button.dart';
 import 'package:jx2_widgets/core/theme.dart';
 import 'package:jx_data/jx_data.dart';
 import 'base_navigator.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 
 class Dbnavigator extends StatelessWidget {
-  final BaseStore model;
+  final Store model;
   final Function()? insertFunc;
   final Function()? editFunc;
   final DataGrid? dataGrid;
@@ -16,6 +17,7 @@ class Dbnavigator extends StatelessWidget {
   final Function()? custom1Func;
   final Function()? custom2Func;
   final List<NavBtn> visibleBtn;
+  final double iconSize;
 
   const Dbnavigator(
     this.model, {
@@ -27,6 +29,7 @@ class Dbnavigator extends StatelessWidget {
     this.custom2Func,
     this.dataGrid,
     this.visibleBtn = completeNavBtn,
+    this.iconSize = 32.0,
     super.key,
   });
 
@@ -40,172 +43,134 @@ class Dbnavigator extends StatelessWidget {
     }
 
     final btnColor = JxTheme.getColor(JxColor.dbNav).foreground;
+    final buttons = <Widget>[];
 
-    // Botões que podem ser exibidos
-    final List<Widget> buttons = [];
-
-    // Calcula o espaço necessário para cada botão com espaçamento real de 2px
-    const double buttonWidth = 48.0;
-    const double spacing = 2.0;
-
-    // Botões com prioridade alta (primeiro nível)
-    if (visibleBtn.contains(NavBtn.navFirst) && width > minWidth) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.first_page, color: btnColor, size: 32),
-          tooltip: "first register",
-          onPressed: () {
-            model.first(true);
-            if (dataGrid != null) dataGrid!.first();
-          },
+    // Configuração dos botões
+    final buttonConfig = <NavBtn, Map<String, dynamic>>{
+      NavBtn.navFirst: {
+        'icon': Icon(Icons.first_page, color: btnColor, size: iconSize),
+        'tooltip': "first register",
+        'onPressed': () {
+          model.first(true);
+          if (dataGrid != null) dataGrid!.first();
+        },
+      },
+      NavBtn.navPrior: {
+        'icon': Icon(Icons.navigate_before, color: btnColor, size: iconSize),
+        'tooltip': "Prior register",
+        'onPressed': () {
+          model.prior(true);
+          if (dataGrid != null) dataGrid!.prior();
+        },
+      },
+      NavBtn.navNext: {
+        'icon': Icon(Icons.navigate_next, color: btnColor, size: iconSize),
+        'tooltip': "Next register",
+        'onPressed': () {
+          model.next(true);
+          if (dataGrid != null) dataGrid!.next();
+        },
+      },
+      NavBtn.navLast: {
+        'icon': Icon(Icons.last_page, color: btnColor, size: iconSize),
+        'tooltip': "last register",
+        'onPressed': () {
+          model.last(true);
+          if (dataGrid != null) dataGrid!.last();
+        },
+      },
+      NavBtn.navAdd: {
+        'icon': Icon(
+          Icons.add,
+          color: JxTheme.getColor(JxColor.dbNavAdd).foreground,
+          size: iconSize,
         ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navPrior) && width > minWidth) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.navigate_before, color: btnColor, size: 32),
-          tooltip: "Prior register",
-          onPressed: () {
-            model.prior(true);
-            if (dataGrid != null) dataGrid!.prior();
-          },
+        'onPressed': insertFunc ?? () => model.append(),
+      },
+      NavBtn.navRemove: {
+        'icon': Icon(
+          Icons.delete,
+          color: JxTheme.getColor(JxColor.dbNavRemove).foreground,
+          size: iconSize,
         ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navNext) && width > minWidth) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.navigate_next, color: btnColor, size: 32),
-          tooltip: "Next register",
-          onPressed: () {
-            model.next(true);
-            if (dataGrid != null) dataGrid!.next();
-          },
-        ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navLast) && width > minWidth) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.last_page, color: btnColor, size: 32),
-          tooltip: "last register",
-          onPressed: () {
-            model.last(true);
-            if (dataGrid != null) dataGrid!.last();
-          },
-        ),
-      );
-    }
-
-    // Botões de ação
-    if (visibleBtn.contains(NavBtn.navAdd)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.add, color: JxTheme.getColor(JxColor.dbNavAdd).foreground, size: 32),
-          onPressed: insertFunc ?? () => model.append(),
-        ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navRemove)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(
-            Icons.delete,
-            color: JxTheme.getColor(JxColor.dbNavRemove).foreground,
-            size: 32,
-          ),
-          onPressed: () async {
-            final ok = await deleteDlg(context);
-            if (ok) {
-              int index = model.recno;
-              if (dataGrid != null) {
-                index = dataGrid!.currentIndex;
-                dataGrid!.removeCurrentRow();
-              }
-              model.recno = index;
-              model.remove();
+        'onPressed': () async {
+          final ok = await deleteDlg(context);
+          if (ok) {
+            int index = model.recno;
+            if (dataGrid != null) {
+              index = dataGrid!.currentIndex;
+              dataGrid!.removeCurrentRow();
             }
-          },
+            model.recno = index;
+            model.remove();
+          }
+        },
+      },
+      NavBtn.navEdit: {
+        'icon': Icon(
+          Icons.edit,
+          color: JxTheme.getColor(JxColor.dbNavEdit).foreground,
+          size: iconSize,
         ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navEdit)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.edit, color: JxTheme.getColor(JxColor.dbNavEdit).foreground, size: 32),
-          onPressed: editFunc ?? () => {},
+        'onPressed': editFunc ?? () => {},
+      },
+      NavBtn.navSave: {
+        'icon': Icon(
+          Icons.save,
+          color: JxTheme.getColor(JxColor.dbNavSave).foreground,
+          size: iconSize,
         ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navSave)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(Icons.save, color: JxTheme.getColor(JxColor.dbNavSave).foreground, size: 32),
-          onPressed: () => model.updateDataByController(),
+        'onPressed': () => model.updateDataByController(),
+      },
+      NavBtn.navCancel: {
+        'icon': Icon(
+          Icons.cancel,
+          color: JxTheme.getColor(JxColor.dbNavCancel).foreground,
+          size: iconSize,
         ),
-      );
-    }
+        'onPressed': () => model.cancel(),
+      },
+      NavBtn.navRefresh: {
+        'icon': Icon(
+          Icons.refresh,
+          color: JxTheme.getColor(JxColor.dbNavRefresh).foreground,
+          size: iconSize,
+        ),
+        'onPressed': () async {
+          // await model.refresh();
+          if (dataGrid != null) await dataGrid!.refreshGrid();
+        },
+      },
+      NavBtn.navCustom1: {
+        'icon': Icon(
+          custom1Icon ?? Icons.verified,
+          color: JxTheme.getColor(JxColor.dbNavCustom1).foreground,
+          size: iconSize,
+        ),
+        'onPressed': custom1Func ?? () => {},
+      },
+      NavBtn.navCustom2: {
+        'icon': Icon(
+          custom2Icon ?? Icons.verified,
+          color: JxTheme.getColor(JxColor.dbNavCustom2).foreground,
+          size: iconSize,
+        ),
+        'onPressed': custom2Func ?? () => {},
+      },
+    };
 
-    if (visibleBtn.contains(NavBtn.navCancel)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(
-            Icons.cancel,
-            color: JxTheme.getColor(JxColor.dbNavCancel).foreground,
-            size: 32,
+    // Adiciona botões visíveis
+    for (final btn in visibleBtn) {
+      if (buttonConfig.containsKey(btn)) {
+        final config = buttonConfig[btn]!;
+        buttons.add(
+          JxIconButton(
+            icon: config['icon'],
+            tooltip: config['tooltip'],
+            onPressed: config['onPressed'],
           ),
-          onPressed: () => model.cancel(),
-        ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navRefresh)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(
-            Icons.refresh,
-            color: JxTheme.getColor(JxColor.dbNavRefresh).foreground,
-            size: 32,
-          ),
-          onPressed: () async {
-            await model.refresh();
-            if (dataGrid != null) dataGrid!.refreshGrid();
-          },
-        ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navCustom1)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(
-            custom1Icon ?? Icons.verified,
-            color: JxTheme.getColor(JxColor.dbNavEdit).foreground,
-            size: 32,
-          ),
-          onPressed: custom1Func ?? () => {},
-        ),
-      );
-    }
-
-    if (visibleBtn.contains(NavBtn.navCustom2)) {
-      buttons.add(
-        JxIconButton(
-          icon: Icon(
-            custom2Icon ?? Icons.verified,
-            color: JxTheme.getColor(JxColor.dbNavEdit).foreground,
-            size: 32,
-          ),
-          onPressed: custom2Func ?? () => {},
-        ),
-      );
+        );
+      }
     }
 
     // Apenas exibe botões se houver espaço suficiente
@@ -214,12 +179,15 @@ class Dbnavigator extends StatelessWidget {
     }
 
     // Calcula quantos botões cabem na largura disponível
+    const double buttonWidth = 48.0;
+    const double spacing = 2.0;
     double availableWidth = width - 32; // Margem de 16px de cada lado
-
-    // Para cada botão, precisamos de buttonWidth + spacing pixels
     int maxButtonsCanFit = (availableWidth / (buttonWidth + spacing)).floor();
 
-    // Se for possível mostrar todos os botões, mostra todos
+    JxLog.trace(
+      "btn length ${buttons.length} max fit $maxButtonsCanFit width $width minWidth $minWidth",
+    );
+
     if (buttons.length <= maxButtonsCanFit) {
       return BaseDbNavigator(buttons);
     } else {

@@ -31,21 +31,12 @@ int binarySearch<T>(T value, List<dynamic> list, String key) {
 }
 
 bool compareLess<T>(T v1, T v2) {
-  if (v1 is Comparable<dynamic> && v2 is Comparable<dynamic>) {
-    // Ambos os valores são comparáveis, então podemos usar compareTo diretamente.
-    return v1.compareTo(v2) < 0;
-  } else {
-    // Tipos não são comparáveis, lançar uma exceção ou tratar de outra forma.
-    throw Exception('Os tipos de dados não são comparáveis: ${v1.runtimeType} e ${v2.runtimeType}');
-  }
+  // Converte ambos para string para uma comparação segura, evitando erros de tipo.
+  return v1.toString().compareTo(v2.toString()) < 0;
 }
 
 bool compareEq<T>(T v1, T v2) {
-  if (v1 is Comparable<dynamic> && v2 is Comparable<dynamic>) {
-    // Ambos os valores são comparáveis, então podemos usar compareTo diretamente.
-    return v1.compareTo(v2) == 0;
-  } else {
-    // Tipos não são comparáveis, lançar uma exceção ou tratar de outra forma.
-    throw Exception('Os tipos de dados não são comparáveis: ${v1.runtimeType} e ${v2.runtimeType}');
-  }
+  // Converte ambos para string para uma comparação segura.
+  // Isso resolve o TypeError quando um é int e o outro é String.
+  return v1.toString() == v2.toString();
 }

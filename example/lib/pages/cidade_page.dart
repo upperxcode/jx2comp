@@ -36,30 +36,11 @@ class _CidadePageState extends State<CidadePage> {
 
 Widget center(int value) {
   final store = CidadeController();
-
   store.dataList = cidades;
 
-  var textStyle = const TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold);
-  //store.refresh("inicial");
+  final textStyle = const TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold);
 
-  final grid = DataGrid(
-    store,
-    rowColorCallback: (CurrentRow row) {
-      if (row.rowIndex % 2 == 0) {
-        return Colors.blue.withAlpha(10);
-      } else {
-        return Colors.white;
-      }
-    },
-
-    textStyle: textStyle,
-    darkMode: true,
-  );
-
-  return Center(widthFactor: 1, heightFactor: 1, child: Container(child: gridpage(grid, store)));
-}
-
-GridPage gridpage(DataGrid grid, Store store) {
+  // Define o callback de cor das linhas
   Color rowColorCallback(CurrentRow row) {
     if (row.rowIndex % 2 == 0) {
       return JxTheme.getColor(JxColor.gridEven).background;
@@ -67,16 +48,63 @@ GridPage gridpage(DataGrid grid, Store store) {
     return JxTheme.getColor(JxColor.gridOdd).background;
   }
 
-  return GridPage(
-    dataGrid: grid,
-    dataController: store,
-    rowColorCallback: rowColorCallback,
-    dbNavigator: Dbnavigator(
-      store,
-      dataGrid: grid,
-      visibleBtn: gridNavBtn,
-      insertFunc: () {},
-      editFunc: () {},
+  return Center(
+    widthFactor: 1,
+    heightFactor: 1,
+    child: FutureBuilder<DataGrid>(
+      future: DataGrid.create(store, textStyle: textStyle, rowColorCallback: rowColorCallback),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Carregando grid...'),
+              ],
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                Text('Erro ao carregar grid: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Força rebuild para tentar novamente
+                    (context as Element).markNeedsBuild();
+                  },
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // DataGrid está pronto para uso
+        final dataGrid = snapshot.data!;
+        return GridPage(
+          dataGrid: dataGrid, // Já resolvido
+          dataController: store,
+          rowColorCallback: rowColorCallback,
+          dbNavigator: Dbnavigator(
+            store,
+            dataGrid: dataGrid, // Já resolvido
+            visibleBtn: gridNavBtn,
+            insertFunc: () {},
+            editFunc: () {},
+          ),
+        );
+      },
     ),
   );
 }

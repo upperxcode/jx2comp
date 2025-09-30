@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:jx2_widgets/components/screens/snackbar_message.dart';
+import 'package:jx_utils/logs/log.dart';
 import 'menu_item.dart';
 
 class MenuItemWidget extends StatelessWidget {
@@ -12,7 +14,9 @@ class MenuItemWidget extends StatelessWidget {
     super.key,
     required this.title,
     required this.icon,
-    required this.onTap, required this.color, required this.textColor,
+    required this.onTap,
+    required this.color,
+    required this.textColor,
   });
 
   @override
@@ -36,7 +40,9 @@ class MenuSectionWidget extends StatelessWidget {
   const MenuSectionWidget({
     super.key,
     required this.sectionTitle,
-    required this.items, required this.color, required this.textColor,
+    required this.items,
+    required this.color,
+    required this.textColor,
   });
 
   @override
@@ -55,7 +61,18 @@ class MenuSectionWidget extends StatelessWidget {
             color: item.color!,
             textColor: item.textColor!,
             onTap: () {
-              Navigator.of(context).pushReplacementNamed(item.route);
+              Navigator.of(context).pop();
+              (item.route == null)
+                  ? (item.func == null)
+                        ? snackMessage(
+                            context,
+                            "Atenção! Acesso negado a essa opção.",
+                            () => {},
+                            4,
+                            SMType.warning,
+                          )
+                        : item.func!(context)
+                  : Navigator.of(context).pushNamed(item.route!);
             },
           ),
       ],

@@ -22,3 +22,5 @@ export 'core/appbar.dart';
 export 'components/screens/snackbar_message.dart';
 export 'components/screens/balloon_tootips2.dart';
 export 'components/screens/circular_pogress.dart';
+
+export 'components/dialogs/generic_modal.dart';

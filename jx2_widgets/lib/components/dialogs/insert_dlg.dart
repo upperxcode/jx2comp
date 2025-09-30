@@ -12,11 +12,7 @@ Future<bool> insertDlg(BuildContext context) async {
       return DialogBase(
         "Please Confirm",
         const Text('Deseja incluir o item digitado na tabela?'),
-        icon: const Icon(
-          Icons.circle_notifications_rounded,
-          color: Colors.red,
-          size: 60,
-        ),
+        icon: const Icon(Icons.circle_notifications_rounded, color: Colors.red, size: 60),
         actions: [
           // The "Yes" button
           TextButton(

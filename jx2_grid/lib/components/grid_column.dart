@@ -1,10 +1,12 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:jx2_grid/components/align2trina.dart';
+import 'package:jx2_grid/components/field2FormattedValue.dart';
+import 'package:jx_data/components/widgets/format.dart' as field_format;
 import 'package:jx2_grid/components/fieldtype2trina.dart';
 import 'package:jx2_widgets/core/theme.dart';
 import 'package:jx_data/components/models/jx_field.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 import 'package:trina_grid/trina_grid.dart';
 
 class GridColumn extends TrinaColumn {
@@ -98,6 +100,6 @@ List<GridColumn> gridColumns(List<JxField> fields, {Color? color, TextStyle? sty
     }
     index++;
   }
-  log("gridcolumns");
+  JxLog.info("gridcolumns");
   return columns;
 }

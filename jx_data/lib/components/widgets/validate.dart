@@ -1,4 +1,5 @@
 import 'package:jx_data/components/models/jx_field.dart';
+import 'package:brasil_fields/brasil_fields.dart';
 
 import '../utils/validate/constants.dart';
 import '../utils/validate/email_validate.dart';
@@ -10,6 +11,8 @@ bool minBmax(JxField field, double value) {
 
 String? validate(String? value, JxField field, [JxField? match]) {
   if (value == null) return null;
+  final length = value.length;
+
   var type = field.type;
   if (value.length < field.minSize) {
     return 'Texto precisa ser maior que ${field.min}';
@@ -31,6 +34,17 @@ String? validate(String? value, JxField field, [JxField? match]) {
     case FieldType.ftPasswordConfirm:
       if (match == null) return "match field dont defined.";
       return !isMatchPassoword(value, match.controller.text) ? "Password doesn't match." : null;
+    case FieldType.ftCpf:
+      return CPFValidator.isValid(value) ? null : 'CPF inválido.';
+    case FieldType.ftCnpj:
+      return CNPJValidator.isValid(value) ? null : 'CNPJ inválido.';
+    case FieldType.ftCpfCnpj:
+      final res = length > 14 ? CNPJValidator.isValid(value) : CPFValidator.isValid(value);
+      return res
+          ? null
+          : length > 14
+          ? 'CNPJ inválido.'
+          : 'CPF inválido.';
     default:
       return null;
   }

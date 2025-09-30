@@ -12,11 +12,7 @@ Future<bool> deleteDlg(BuildContext context) async {
       return DialogBase(
         "Please Confirm",
         const Text('Are you sure to remove the register?'),
-        icon: const Icon(
-          Icons.circle_notifications_rounded,
-          color: Colors.red,
-          size: 60,
-        ),
+        icon: const Icon(Icons.circle_notifications_rounded, color: Colors.red, size: 60),
         actions: [
           // The "Yes" button
           TextButton(

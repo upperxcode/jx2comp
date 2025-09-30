@@ -16,6 +16,8 @@ dependencies:
     path: ../jx_data
   jx2_widgets:
     path: ../jx2_widgets
+  jx_utils:
+    path: ../jx_utils
 
 dev_dependencies:
   flutter_test:

@@ -1,10 +1,9 @@
-import 'dart:developer';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:jx2_grid/components/current_row.dart';
 import 'package:jx2_widgets/core/theme.dart';
-import 'package:jx_data/jx_data.dart';
+import 'package:jx_data/components/stores/jx_store.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 
 import 'package:trina_grid/trina_grid.dart';
 import 'grid_column.dart';
@@ -15,8 +14,7 @@ class DataGrid {
   final Store controller;
   List<TrinaColumn>? columns;
   List<TrinaRow>? rows;
-  late CurrentRow currentRow = CurrentRow();
-  late Color Function(CurrentRow)? rowColorCallback;
+  late Color Function(int)? rowColorCallback;
   final TrinaAutoSizeMode? autoSizeMode;
   final TextStyle? textStyle;
   final bool darkMode;
@@ -27,114 +25,150 @@ class DataGrid {
 
   DataGrid(
     this.controller, {
-    required this.rowColorCallback,
     this.autoSizeMode,
     this.textStyle,
+    this.rowColorCallback,
     this.darkMode = false,
   }) {
-    //columns = gridColumns(controller.fields, style: textStyle);
-    //rows = gridRows(controller);
-    log("refreshGrid datagrid 1");
-    //refreshGrid();
+    JxLog.trace("Constructor: DataGrid created.");
+    rowColorCallback ?? (v) => Colors.white;
   }
 
-  set colorCallBack(Color Function(CurrentRow) func) {
+  /// Define a função de callback para a cor da linha.
+  set colorCallBack(Color Function(int) func) {
     rowColorCallback = func;
   }
 
-  void initTrinaGrid() {
-    if (loaded) return;
-    log("refreshGrid datagrid 2");
-    //refreshGrid();
-    _trinaGrid = _createTrinaGrid();
+  /// Aplica um filtro ao grid com base em um valor e uma coluna.
+  void setFilter(String filterValue, String filterColumn) {
+    _setFilter(filterValue, filterColumn);
+  }
+
+  /// Limpa todos os filtros aplicados ao grid.
+  void clearFilter() {
+    // Passa uma lista de filtros vazia para o gerenciador de estado
+    stateManager!.setFilterWithFilterRows([]);
+    stateManager!.setShowColumnFilter(false);
+  }
+
+  void _setFilter(String filterColumn, String filterValue) {
+    // Create a filter row with a `contains` operator for the 'name_field'
+    JxLog.info("filtrando $filterColumn $filterValue ");
+    TrinaRow filterRow = FilterHelper.createFilterRow(
+      columnField: filterColumn,
+      filterType: const TrinaFilterTypeEquals(),
+      filterValue: filterValue,
+    );
+
+    // Set the new filter on the state manager
+    stateManager!.setFilterRows([filterRow]);
+    stateManager!.setShowColumnFilter(true);
+  }
+
+  // Método privado para garantir a inicialização única do grid.
+  Future<void> _ensureTrinaGridIsInitialized() async {
+    if (loaded && _trinaGrid != null) {
+      JxLog.trace("initTrinaGrid: Grid already initialized.");
+      return;
+    }
+
+    JxLog.trace("initTrinaGrid: Creating new grid instance.");
+    _trinaGrid = await _createTrinaGrid();
     loaded = true;
   }
 
-  Future<bool> refreshGrid() async {
+  /// Ponto de entrada seguro para obter o widget do grid, garantindo sua inicialização.
+  Future<TrinaGrid> datagrid() async {
+    await _ensureTrinaGridIsInitialized();
+
+    if (!await refreshGrid()) {
+      JxLog.trace("datagrid: Failed to refresh grid data.");
+    }
+
+    return _trinaGrid!;
+  }
+
+  /// Atualiza os dados do grid, buscando novas informações do controller.
+  Future<bool> refreshGrid([bool force = true]) async {
+    JxLog.trace("refreshGrid inicio ...");
+
     try {
       if (stateManager == null) {
-        if (columns != null) {
-          columns = gridColumns(controller.fields!, style: textStyle);
-        }
-        await controller.refresh("gride stataManager == null");
+        JxLog.trace("refreshGrid: stateManager is null, creating initial grid.");
+        columns = gridColumns(controller.fields!, style: textStyle);
+        if (force) await controller.refresh("gride stataManager == null");
         rows = gridRows(controller);
+        JxLog.error("... refreshGrid fim stateManager null ...");
         return true;
       }
-      stateManager?.setShowLoading(true); // Inicie o indicador de carregamento.
 
-      // Atualize os dados chamando a função refresh do controller.
-      await controller.refresh("gride!");
-
-      // Obtenha as novas linhas baseadas nos dados atualizados do controller.
+      stateManager?.setShowLoading(true);
+      if (force) await controller.refresh("gride!");
       final newRows = gridRows(controller);
 
-      // Reinicialize o estado do grid e adicione as novas linhas, sem notificar ainda.
       stateManager?.resetCurrentState(notify: false);
       stateManager?.removeAllRows();
-      stateManager?.appendRows(newRows);
-
-      // Finalmente, desative o indicador de carregamento.
+      if (controller.isNotEmpty) stateManager?.appendRows(newRows);
       stateManager?.setShowLoading(false);
-
-      // Notifique os ouvintes após a atualização bem-sucedida dos dados.
       stateManager?.notifyListeners();
     } catch (e) {
+      JxLog.error("Erro! Não foi possível fazer o refresh no grid. $e");
       stateManager?.setShowLoading(false);
-      return false; // Retorne false devido ao erro.
+
+      return false;
     }
 
-    return true; // Retorne true quando a atualização for bem-sucedida.
+    JxLog.trace("... refreshGrid fim");
+    return true;
   }
 
+  /// Retorna o índice da linha ativa.
   int get activeRow => _activeRow;
+
+  /// Retorna o índice da linha atualmente selecionada no grid.
   int get currentIndex => stateManager?.currentRowIdx ?? 0;
 
+  /// Atualiza o grid com base no estado do controller (inserção ou atualização).
   void updateGrid() {
+    JxLog.trace("updateGrid inicio ...");
     if (controller.dbstate == DbState.update) {
+      JxLog.trace("updateGrid update");
       _updateRow();
     } else if (controller.dbstate == DbState.insert) {
+      JxLog.trace("updateGrid insert");
       _insertRow();
     }
+    JxLog.trace("final updateGrid inicio");
   }
 
+  /// Verifica se alguma célula está selecionada no grid.
   bool isCellSelected() => stateManager?.currentCellPosition != null;
 
   void _newRow(int position, {bool replace = false}) {
+    JxLog.trace('_newRow');
     if (stateManager == null) {
-      // Handle the case when stateManager is not initialized.
-      log('StateManager is not available.');
+      JxLog.trace('StateManager is not available.');
       return;
     }
 
-    // Ensure the position is within the range of existing rows.
     int rowCount = stateManager!.rows.length;
     if (position < 0 || position > rowCount) {
-      // Handle the case when the position is out of bounds.
-      log('Position is out of bounds.');
+      JxLog.trace('Position is out of bounds.');
       return;
     }
 
-    // Create a new row data.
     final row = _createRowData(position, replace: replace);
 
-    // Replace the current row if needed.
     if (replace) {
-      // Ensure we have a current row selected.
       if (stateManager!.currentRowIdx == null) {
-        log('No current row selected to replace.');
+        JxLog.trace('No current row selected to replace.');
         return;
       }
-      // Remove the current row.
       stateManager!.removeRows([stateManager!.rows[position]]);
     }
 
-    // Insert the new row at the specified position.
     stateManager!.insertRows(position, [TrinaRow(cells: row)]);
-
-    // Set the newly inserted row as the current row.
     stateManager!.setCurrentCellPosition(TrinaGridCellPosition(columnIdx: 0, rowIdx: position));
-
-    // Refresh the UI.
     stateManager!.notifyListeners();
   }
 
@@ -151,80 +185,87 @@ class DataGrid {
   }
 
   Map<String, TrinaCell> _createRowData(int position, {bool replace = false}) {
+    JxLog.trace('_createRowData');
     final row = <String, TrinaCell>{};
     if (!replace) controller.last();
     row["index"] = TrinaCell(value: position);
     for (var field in controller.fields!) {
       var value = controller.fieldByName(field.name);
+      JxLog.trace("field = ${field.name} value => $value");
       row[field.name] = TrinaCell(value: value);
     }
     return row;
   }
 
-  TrinaGrid datagrid() {
-    //columns = gridColumns(controller.fields, style: textStyle);
-    //rows = gridRows(controller);
-    initTrinaGrid();
-    return _trinaGrid ?? const TrinaGrid(columns: [], rows: []);
-  }
+  Future<TrinaGrid> _createTrinaGrid() async {
+    columns = gridColumns(controller.fields!, style: textStyle);
+    rows = gridRows(controller);
 
-  TrinaGrid _createTrinaGrid() {
     return TrinaGrid(
-      columns: columns ?? gridColumns(controller.fields!, style: textStyle),
-      rows: rows ?? gridRows(controller),
+      columns: columns!,
+      rows: rows!,
       mode: TrinaGridMode.select,
-      // autoSizeMode is not a valid parameter, removing it
       configuration: _config(),
       rowColorCallback: _rowColor,
       onLoaded: _onGridLoaded,
       onSorted: _onTrinaGridSortedEvent,
       onChanged: _onTrinaGridChangedEvent,
+      onSelected: (event) {
+        JxLog.trace(
+          "Onselect event.rowIdx: ${event.rowIdx} controller.recno: ${controller.recno} ",
+        );
+        if (event.rowIdx != null && controller.recno != event.rowIdx) {
+          controller.recno = event.rowIdx!;
+        }
+      },
     );
   }
 
   void _onGridLoaded(TrinaGridOnLoadedEvent event) {
+    JxLog.trace("_onGridLoaded");
     stateManager = event.stateManager;
     stateManager?.setSelectingMode(TrinaGridSelectingMode.row);
     stateManager?.addListener(_onRowStateChanged);
+
+    JxLog.trace("_onGridLoaded $stateManager");
   }
 
   void _onTrinaGridChangedEvent(TrinaGridOnChangedEvent event) {
-    log("Trina event $event");
+    JxLog.trace("Trina event $event");
   }
 
   void _onTrinaGridSortedEvent(TrinaGridOnSortedEvent event) {
-    log("Trina event $event");
+    JxLog.trace("Trina event $event");
   }
 
   Color _rowColor(TrinaRowColorContext colorContext) {
     if (rowColorCallback != null) {
-      final currentRow = CurrentRow();
-      currentRow.context = colorContext;
-      final rowColor = rowColorCallback!(currentRow);
-      return rowColor;
+      return rowColorCallback!(colorContext.rowIdx);
     }
 
     return Colors.blue.withValues(alpha: 0.5, red: 0.5, colorSpace: ColorSpace.sRGB);
   }
 
   void _onRowStateChanged() {
+    JxLog.trace("_onRowStateChanged");
     if (controller.dbstate == DbState.browser) {
+      JxLog.trace("_onRowStateChanged browser");
       _syncRows();
-      controller.updateControllerByData();
+      //controller.updateControllerByData();
+    } else if (controller.dbstate == DbState.update) {
+      JxLog.trace("_onRowStateChanged update");
     }
   }
 
-  //sincroniza o vetor da tabela no mesmo item que está selecionado no gride
   void _syncRows() {
-    //se não existe linha selecionada, não é possível posicionar cursor no vetor da tabela
+    JxLog.trace("_syncRows inicio ...");
     _activeRow = stateManager?.currentRowIdx ?? 0;
-    //usa a primeira coluna que guarda a posição absuluta da linha no vetor da tabela
-    //essa coluna não é visível
-    if (_activeRow != 0) {
-      final relativeRow = stateManager?.currentRow?.cells.values.elementAt(0).value;
-      log("currentRow => $relativeRow");
-      controller.recno = relativeRow;
-    }
+
+    final relativeRow = stateManager?.currentRow?.cells.values.elementAt(0).value ?? 0;
+    JxLog.trace("relativeRow => $relativeRow");
+    controller.recno = relativeRow;
+
+    JxLog.trace("... _syncRows fim");
   }
 
   TrinaGridConfiguration _config() {
@@ -238,13 +279,11 @@ class DataGrid {
         rowHeight: 30,
         columnHeight: 35,
         columnTextStyle: textStyle ?? const TextStyle(fontSize: 16),
-
         borderColor: JxTheme.getColor(JxColor.gridBorder).background,
         gridBackgroundColor: JxTheme.getColor(JxColor.grid).background,
         activatedColor: JxTheme.getColor(JxColor.gridSelection).background,
-
         evenRowColor: JxTheme.getColor(JxColor.gridEven).background,
-        oddRowColor: JxTheme.getColor(JxColor.gridEven).background,
+        oddRowColor: JxTheme.getColor(JxColor.gridOdd).background,
         columnCheckedColor: JxTheme.getColor(JxColor.gridChecked).background,
         cellActiveColor: JxTheme.getColor(JxColor.gridFocus).background,
         cellTextStyle: TextStyle(color: JxTheme.getColor(JxColor.grid).foreground),
@@ -252,16 +291,19 @@ class DataGrid {
     );
   }
 
+  /// Remove a linha atualmente selecionada do grid.
   void removeCurrentRow() {
     stateManager?.removeCurrentRow();
     stateManager?.notifyListeners();
   }
 
+  /// Move a seleção para a primeira linha do grid.
   void first() {
     _activeRow = 0;
     _moveCurrentCellPositionToActiveRow();
   }
 
+  /// Move a seleção para a linha anterior no grid.
   void prior() {
     if (_activeRow > 0) {
       _activeRow--;
@@ -269,6 +311,7 @@ class DataGrid {
     }
   }
 
+  /// Move a seleção para a próxima linha no grid.
   void next() {
     if (_activeRow < stateManager!.rows.length - 1) {
       _activeRow++;
@@ -276,6 +319,7 @@ class DataGrid {
     }
   }
 
+  /// Move a seleção para a última linha do grid.
   void last() {
     _activeRow = stateManager!.rows.length - 1;
     _moveCurrentCellPositionToActiveRow();
@@ -285,14 +329,14 @@ class DataGrid {
     try {
       stateManager?.moveCurrentCellByRowIdx(_activeRow, TrinaMoveDirection.down);
     } catch (e) {
-      log("error: $e");
+      JxLog.error("error: $e");
     }
   }
 
+  /// Retorna o texto de localização para os componentes do grid.
   TrinaGridLocaleText localeText() {
     return TrinaGridLocaleText(
       unfreezeColumn: 'descongela',
-
       freezeColumnToStart: 'congela para o início',
       freezeColumnToEnd: 'congela para o final',
       autoFitColumn: 'largura auto',

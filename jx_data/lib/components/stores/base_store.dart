@@ -4,241 +4,242 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:jx2_grid/components/datagrid.dart';
 import 'package:jx_utils/jx_utils.dart' as func;
+import 'package:jx_utils/logs/jx_log.dart';
 import '../utils/constant.dart';
 import '../models/jx_model.dart';
 import '../models/jx_field.dart';
 import 'enums.dart';
-import 'filter.dart';
+import 'filterable.dart';
+import 'filter_mixin.dart';
 
-enum DbAction { insert, update, delete }
-
-enum DbState { insert, update, delete, browser, canceling, loading, error, empty }
-
-class Store extends BaseStore {
-  final List<JxField> jxFields;
-  Store(this.jxFields) : super(jxFields);
-}
-
-abstract class BaseStore with ChangeNotifier {
+/// Classe base abstrata que implementa a interface [Filterable] e estende [ChangeNotifier].
+/// Esta é a classe na qual o [FilteringMixin] será aplicado.
+abstract class BaseStoreWithInterface extends ChangeNotifier implements Filterable {
+  @override
   late List<JxField> model;
   DbState _dbstate = DbState.browser;
-
   set dbstate(DbState v) {
     _dbstate = v;
     notifyListeners();
   }
 
+  String? _tableName;
+  String get tableName => _tableName!;
+  set tableName(String v) => _tableName = v;
+
+  // Raw data from the source (API, Supabase, etc.)
   List<Map<String, dynamic>> _dataList = [];
 
+  /// Define a lista de dados brutos e notifica os ouvintes.
   set dataList(List<Map<String, dynamic>> v) {
     _dataList = v;
     notifyListeners();
   }
 
+  @override
   List<Map<String, dynamic>> get dataList => _dataList;
 
-  Map<String, dynamic> updateData = {};
-  String deleteData = '';
+  // Data converted to JxModel objects
+  @override
+  List<JxModel> _items = [];
 
-  static bool _isRefreshing = false; // Variável para controlar se uma atualização está em andamento
-
-  Timer? _refreshTimeoutTimer;
-
-  DbState get dbstate => _dbstate;
-
-  final List<JxModel> _items = [];
-
-  final Map<int, DbAction> _modified = {};
-  Map<int, DbAction> get modified => _modified;
-
-  List<FilterExpress> _currentFilter = [];
+  // Filtered data
+  @override
   List<JxModel> _filteredItems = [];
-  bool _isFiltered = false;
 
-  bool get isFiltered => _isFiltered;
+  /// Returns the active list of items (filtered or all)
+  List<JxModel> get _localItems => isFiltered ? _filteredItems : _items;
 
-  List<FilterExpress> get currentFilter => [..._currentFilter];
+  /// Returns the list of items (filtered or complete).
+  @override
+  List<JxModel> get items => isFiltered ? [..._filteredItems] : [..._items];
 
-  /// Define um filtro para os itens do modelo
-  ///
-  /// O filtro é uma lista de expressões de filtro que podem ser combinadas para criar filtros complexos.
-  /// Cada elemento da lista representa uma condição de filtro com campo, operador e valor.
-  /// Para suportar operadores lógicos, as expressões podem ser combinadas em grupos onde cada grupo
-  /// representa uma condição OR entre seus elementos.
-  /// Exemplo: [FilterExpress("condominio", FilterOperator.equal, "1"), FilterExpress("nome", FilterOperator.contains, "joão")]
-  ///
-  /// @param filter - Lista de expressões de filtro para aplicar
-  void setFilter(List<FilterExpress> filter) {
-    _currentFilter = filter;
-
-    if (filter.isEmpty) {
-      // Se o filtro estiver vazio, restaura todos os itens e reseta o filtro
-      _filteredItems = [];
-      _isFiltered = false;
-      recno = -1;
-      _updateControllerByData();
-      return;
-    }
-
-    // Aplica os filtros
-    _filteredItems = _items.where((item) {
-      try {
-        // Processa cada expressão de filtro
-        bool matchesAll = true;
-
-        for (var filterExpr in filter) {
-          final field = filterExpr.fieldName;
-          final operator = filterExpr.operator;
-          final value = filterExpr.value;
-
-          // Obtem o valor do campo no item
-          final fieldValue = item.fieldByName(field);
-
-          if (fieldValue == null) {
-            matchesAll = false;
-            break;
-          }
-
-          // Aplica o operador de filtro
-          bool fieldMatches = false;
-
-          switch (operator) {
-            case FilterOperator.equal:
-              fieldMatches = fieldValue.toString() == value.toString();
-              break;
-            case FilterOperator.notEqual:
-              fieldMatches = fieldValue.toString() != value.toString();
-              break;
-            case FilterOperator.greaterThan:
-              if (fieldValue is num && value is num) {
-                fieldMatches = fieldValue > value;
-              }
-              break;
-            case FilterOperator.lessThan:
-              if (fieldValue is num && value is num) {
-                fieldMatches = fieldValue < value;
-              }
-              break;
-            case FilterOperator.greaterThanOrEqual:
-              if (fieldValue is num && value is num) {
-                fieldMatches = fieldValue >= value;
-              }
-              break;
-            case FilterOperator.lessThanOrEqual:
-              if (fieldValue is num && value is num) {
-                fieldMatches = fieldValue <= value;
-              }
-              break;
-            case FilterOperator.contains:
-              fieldMatches = fieldValue.toString().toLowerCase().contains(
-                value.toString().toLowerCase(),
-              );
-              break;
-            case FilterOperator.startsWith:
-              fieldMatches = fieldValue.toString().toLowerCase().startsWith(
-                value.toString().toLowerCase(),
-              );
-              break;
-            case FilterOperator.endsWith:
-              fieldMatches = fieldValue.toString().toLowerCase().endsWith(
-                value.toString().toLowerCase(),
-              );
-              break;
-          }
-
-          if (!fieldMatches) {
-            matchesAll = false;
-            break;
-          }
-        }
-
-        return matchesAll;
-      } catch (e) {
-        // Em caso de erro na conversão ou processamento, ignora o item
-        return false;
-      }
-    }).toList();
-
-    _isFiltered = true;
-
-    // Atualiza o recno atual após filtrar
-    if (_filteredItems.isNotEmpty) {
-      recno = 0;
-      _updateControllerByData();
-    } else {
-      recno = -1;
-    }
-  }
-
-  String errorMessage = '';
-
-  int get count => isFiltered ? _filteredItems.length : _items.length;
-
-  List<JxModel> get items => _isFiltered ? [..._filteredItems] : [..._items];
-
-  List<JxModel> listWatch() {
-    notifyListeners();
-    return [...items];
-  }
-
+  /// Sets the list of items for the store.
+  @override
   set items(List<JxModel> source) {
-    items.clear();
+    _items.clear();
     for (var item in source) {
-      items.add(item);
+      _items.add(item);
     }
     if (isFiltered) {
       setFilter(currentFilter);
     }
   }
 
+  @override
+  set filteredItems(List<JxModel> value) {
+    _filteredItems = value;
+  }
+
+  @override
+  List<JxModel> get filteredItems => _filteredItems;
+
+  /// Verifica se o store contém dados.
+  bool get isNotEmpty => isFiltered ? _filteredItems.isNotEmpty : _items.isNotEmpty;
+
+  /// Verifica se o store está vazio.
+  bool get isEmpty => isFiltered ? _filteredItems.isEmpty : _items.isEmpty;
+
+  Map<String, dynamic> updateData = {};
+
+  String deleteData = '';
+
+  /// Retorna o estado atual do banco de dados.
+  @override
+  DbState get dbstate => _dbstate; // Getter
+
+  DataGrid? _dataGrid;
+
+  /// Retorna a instância do [DataGrid] associada a este store.
+  DataGrid? get dataGrid => _dataGrid;
+
+  /// Define a instância do [DataGrid] para este store.
+  set dataGrid(DataGrid? v) {
+    _dataGrid = v;
+  }
+
+  /// Retorna um mapa de registros modificados e a ação correspondente.
+  final Map<int, DbAction> _modified = {};
+  Map<int, DbAction> get modified => _modified;
+
+  @override // from Filterable
   int recno = 0;
   late String _fieldOrder;
-
   late String _message;
+  String errorMessage = '';
+  HomeState state = HomeState.unstate;
+
+  /// Retorna a mensagem de estado atual.
   String get message => _message;
 
+  /// Retorna o nome do campo usado para ordenação.
   String get fieldOrder => _fieldOrder;
+
+  /// Define o campo para ordenação.
   set fieldOrder(String fieldName) {
     _fieldOrder = fieldName;
   }
 
-  HomeState state = HomeState.unstate;
+  /// Retorna o número de itens (considerando o filtro, se ativo).
+  int get count => isFiltered ? _filteredItems.length : _items.length;
 
-  // get fields => localItems[recno].fields;
-  List<JxField>? get fields {
-    final localItems = isFiltered ? _filteredItems : _items;
-    if (localItems.isNotEmpty) {
-      return localItems[recno].fields;
-    }
-    return model;
-  }
+  // endregion
 
-  BaseStore(this.model) {
+  // region Constructor
+
+  BaseStoreWithInterface(this.model) {
     _fieldOrder = 'id';
     _message = '';
     errorMessage = '';
   }
 
+  // endregion
+
+  // region Data Access & Manipulation
+
+  // get fields => _localItems[recno].fields;
+  /// Retorna a lista de campos [JxField] para o registro atual.
+  List<JxField>? get fields {
+    if (_localItems.isNotEmpty) {
+      return _localItems[recno].fields;
+    }
+    return model;
+  }
+
+  /// Converte os itens do store em uma lista de mapas para uso em lookups.
   Future<List<Map<String, dynamic>>> toListMap(String field1, field2) async {
-    final localItems = isFiltered ? _filteredItems : _items;
-    final List<Map<String, dynamic>> itemsMapList = localItems.map((item) {
+    final List<Map<String, dynamic>> itemsMapList = _localItems.map((item) {
       return {'id': item.fieldByName(field1), 'nome': item.fieldByName(field2)};
     }).toList();
     return itemsMapList;
   }
 
+  /// Converte os itens do store em um mapa de chave-valor para uso em lookups.
   Map<int, String> toLookupMap(String field1, field2, String? controle) {
     final Map<int, String> itemsMapList = {};
 
-    log("lookupMap $controle");
-    final localItems = isFiltered ? _filteredItems : _items;
-    for (var el in localItems) {
+    JxLog.trace("lookupMap $controle");
+    for (var el in _localItems) {
       itemsMapList[el.fieldByName(field1)] = el.fieldByName(field2);
     }
     return itemsMapList;
   }
 
+  /// Retorna o valor de um campo específico do registro atual.
+  dynamic fieldByName(String key) {
+    if (recno == -1) {
+      _message = 'Item não encontrado!';
+      last();
+    }
+    if (isFiltered ? _filteredItems.isEmpty : _localItems.isEmpty) {
+      throw Exception('O resultado da pesquisa está vázio!');
+    }
+    return isFiltered
+        ? _filteredItems[recno].fieldByName(key)
+        : _localItems[recno].fieldByName(key);
+  }
+
+  /// Define o valor de um campo específico no registro atual.
+  void setFieldByName(String key, dynamic v) {
+    if (recno < 0) return;
+    _localItems[recno].setFieldByName(key, v);
+  }
+
+  /// Altera o valor de um campo e notifica os ouvintes.
+  void changed(String fieldName, String v, {bool notify = true}) {
+    if (recno >= 0 && recno < _localItems.length) {
+      _localItems[recno].setFieldByName(fieldName, v);
+    } else {
+      JxLog.warning(
+        'changed: recno ($recno) is out of bounds for _localItems length (${_localItems.length}).',
+      );
+    }
+
+    if (notify) notifyListeners();
+  }
+
+  /// Retorna a instância [JxField] de um campo específico do registro atual.
+  JxField field(String fieldName) {
+    if (_localItems.isEmpty) {
+      recno = 0;
+      var order = 0;
+      for (var it in model) {
+        if (it.name == fieldName) {
+          return model[order];
+        }
+        order++;
+      }
+      throw Exception('Field Not $fieldName Found');
+    }
+    final List<JxField> mdl = _localItems[recno].fields ?? [];
+
+    for (var item in mdl) {
+      if (item.name == fieldName) {
+        return item;
+      }
+    }
+    throw Exception('Field Not $fieldName Found');
+  }
+
+  /// Retorna a instância [JxField] de um campo com base em sua ordem (índice).
+  JxField fieldByOrder(int id) {
+    if (id > _localItems.length) {
+      throw Exception('Field Not $id Found');
+    }
+    final List<JxField> mdl = _localItems[recno].fields ?? [];
+    return mdl[id];
+  }
+
+  // endregion
+
+  // region Data Refresh Cycle
+
+  static bool _isRefreshing = false; // Variável para controlar se uma atualização está em andamento
+  Timer? _refreshTimeoutTimer;
+
+  /// Atualiza os dados do store, buscando-os novamente da fonte de dados.
   Future<bool> refresh([String? controle]) async {
     const int maxAttempts = 10;
     const int timeoutDuration = 30; // Tempo em segundos para o timeout
@@ -249,16 +250,16 @@ abstract class BaseStore with ChangeNotifier {
     // ... (Mantém a lógica de verificação e timeout inalterada)
 
     _isRefreshing = true;
-    log("Iniciando refresh $controle ===>");
+    JxLog.trace("Iniciando refresh $controle ===>");
 
     _refreshTimeoutTimer = Timer(Duration(seconds: timeoutDuration), () {
       _isRefreshing = false;
-      log("Timeout atingido. Permissão para nova atualização.");
+      JxLog.trace("Timeout atingido. Permissão para nova atualização.");
     });
 
     while (attempt < maxAttempts && !success) {
       attempt++;
-      log("Tentativa $attempt de $maxAttempts para refresh $controle ===>");
+      JxLog.trace("Tentativa $attempt de $maxAttempts para refresh $controle ===>");
       state = HomeState.loading;
       dbstate = DbState.loading;
 
@@ -267,29 +268,45 @@ abstract class BaseStore with ChangeNotifier {
 
         // 1. Verifique se a lista está vazia antes de qualquer processamento
         if (_dataList.isEmpty) {
-          log('O resultado da pesquisa está vazio. Nenhuma ação a ser tomada.');
-          items = []; // Garante que a lista de itens seja vazia
+          JxLog.error('O resultado da pesquisa está vazio. Nenhuma ação a ser tomada.');
+          _items = []; // Garante que a lista de itens seja vazia
           success = true; // Considere a operação um sucesso, apenas sem dados.
           state = HomeState.success; // Ou um estado como HomeState.empty
+          JxLog.info('O _dataList está vazio. A lista de itens será limpa.');
+          _items = [];
         } else {
           // 2. Prossiga com o mapeamento e processamento apenas se houver dados
-          log("Mapeando dados...");
-          items = _dataList.map((e) => JxModel.fromJson(e, model)).toList();
+          JxLog.info("Mapeando dados... ${dataList.length}");
+          _items = _dataList.map((e) => JxModel.fromJson(e, model)).toList();
           success = true;
           state = HomeState.success;
+          JxLog.info("Mapeando ${_dataList.length} registros de _dataList para _items.");
+          // Adicionando log para inspecionar o primeiro registro
+          if (_dataList.isNotEmpty) {
+            JxLog.trace("Primeiro registro em _dataList: ${_dataList.first}");
+          }
+          _items = _dataList.map((e) {
+            // Log para cada item sendo mapeado
+            // JxLog.trace("Mapeando item: $e");
+            return JxModel.fromJson(e, model);
+          }).toList();
         }
 
+        success = true;
+        state = HomeState.success;
         dbstate = DbState.browser;
       } catch (e) {
+        success = false;
         state = HomeState.error;
         dbstate = DbState.error;
-        log('Erro ao acessar a API: $errorMessage => $e');
+
+        JxLog.error('Erro ao acessar a API: $errorMessage => $e');
 
         if (attempt < maxAttempts) {
-          log('Tentativa falhou, tentando novamente em 1 segundo...');
+          JxLog.trace('Tentativa falhou, tentando novamente em 1 segundo...');
           await Future.delayed(Duration(seconds: 1));
         } else {
-          log('Máximo de tentativas atingido. Falha na atualização.');
+          JxLog.trace('Máximo de tentativas atingido. Falha na atualização.');
           success = false;
         }
       }
@@ -303,38 +320,38 @@ abstract class BaseStore with ChangeNotifier {
       await afterRefresh();
     }
 
-    log("refresh $controle <====");
+    JxLog.trace("refresh $controle <====");
+    JxLog.info("refresh de dados $tableName => ${items.length} => $success");
     return success;
   }
 
-  void log(String message) {
-    if (kDebugMode) {
-      print(message);
-    }
-  }
-
+  /// Executa ações antes do processo de atualização de dados.
   void beforeRefresh() {
     _modified.clear;
     clear();
     last();
     _isRefreshing = true;
-    log("refresh => $_isRefreshing");
+    JxLog.trace("refresh => $_isRefreshing");
   }
 
+  /// Executa ações após o processo de atualização de dados ser concluído com sucesso.
   Future<void> afterRefresh() async {
     _updateControllerByData();
     _isRefreshing = false;
-    log("refresh => $_isRefreshing");
+    JxLog.trace("refresh => $_isRefreshing");
   }
 
-  Future<void> commit() async {
-    _modified.forEach((key, value) {});
-  }
+  // endregion
 
+  // region UI & Data Binding
+
+  /// Define o modo de estado do banco de dados.
   void dbStateMode(DbState v) {
     dbstate = v;
   }
 
+  /// Atualiza os controladores de UI com base nos dados do registro atual.
+  @override
   void updateControllerByData() {
     switch (dbstate) {
       case DbState.canceling:
@@ -351,11 +368,23 @@ abstract class BaseStore with ChangeNotifier {
     _updateControllerByData();
   }
 
-  void _updateControllerByData() {
-    final localItems = isFiltered ? _filteredItems : _items;
+  /// Retorna os dados do registro atual como um mapa JSON.
+  Map<String, dynamic> get currentData {
+    if (recno >= 0 && recno < _localItems.length) {
+      return _localItems[recno].field2Json();
+    }
+    return {};
+  }
 
-    if (localItems.isEmpty) return;
-    final List<JxField> mdl = localItems[recno].fields ?? [];
+  void _updateControllerByData() {
+    if (dbstate != DbState.browser) return;
+
+    if (!isFilterON && isFiltered) setFilter(currentFilter);
+
+    JxLog.info("updateController recno  inicio ...");
+
+    if (_localItems.isEmpty) return;
+    final List<JxField> mdl = _localItems[recno].fields ?? [];
     for (var item in mdl) {
       var value = fieldByName(item.name);
       if (item.type == FieldType.ftMoney) {
@@ -385,10 +414,76 @@ abstract class BaseStore with ChangeNotifier {
       field(item.name).controller.text = value != null ? "$value" : "";
     }
 
-    log("updateController recno $recno");
+    JxLog.info("total de updates ${mdl.length} em ${tableName}");
+
+    JxLog.trace("... updateController final recno $recno");
 
     notifyListeners();
   }
+
+  /// Atualiza os dados do modelo com os valores dos controladores de UI.
+  Future<void> updateDataByController() async {
+    JxLog.trace("updateDataByController inicio... recno $recno");
+    final mdl = _localItems[recno].fields ?? [];
+    for (final item in mdl) {
+      final v = item.controller.text;
+      dynamic value;
+
+      if (item.readOnly || item.calculated) {
+        continue;
+      }
+
+      if (item.isMoney || item.isDouble) {
+        value = func.doubleRawValue(v);
+      } else if (item.isDigit) {
+        value = int.tryParse(_onlyDigits(item.controller.text)) ?? 0;
+      } else if (item.fieldType == FieldType.ftBool) {
+        value = v == "true" ? true : false;
+      } else if (item.fieldType == FieldType.ftDateTime) {
+        // Tratando campos do tipo DateTime
+        final DateFormat formatter = DateFormat('yyyy-MM-ddTHH:mm:ss'); // Formato ISO 8601
+        final DateTime dateTime = DateFormat('seuFormatoEntrada').parse(v, true);
+        value = formatter.format(dateTime);
+      } else {
+        value = v;
+      }
+      setFieldByName(item.name, value);
+      JxLog.trace("nome ${item.name} valor $value");
+    }
+
+    if (dbstate == DbState.update) {
+      _addModified(DbAction.update);
+    }
+
+    notifyListeners();
+    updateData = _localItems[recno].field2Json();
+    JxLog.trace("... updateDataByController final");
+
+    JxLog.info("total de updates ${mdl.length} em ${tableName}");
+  }
+
+  /// Cria um widget `Text` que observa e exibe o valor de um campo específico.
+  Widget watch(String fieldName) {
+    return ListenableBuilder(
+      listenable: this,
+      builder: (BuildContext context, Widget? child) {
+        return Text(
+          fieldByName(fieldName).toString(),
+          style: const TextStyle(fontSize: 16, color: Colors.black),
+        );
+      },
+    );
+  }
+
+  /// Notifica os ouvintes e retorna a lista de itens.
+  List<JxModel> listWatch() {
+    notifyListeners();
+    return [..._items];
+  }
+
+  // endregion
+
+  // region Internal Helpers & Utilities
 
   /// Interpreta a fórmula e faz o cálculo
   /// A fórmula deve ser uma lista de strings. O primeiro elemento é o
@@ -435,49 +530,14 @@ abstract class BaseStore with ChangeNotifier {
     return result;
   }
 
-  Future<void> updateDataByController() async {
-    final localItems = isFiltered ? _filteredItems : _items;
-    final mdl = localItems[recno].fields ?? [];
-    for (final item in mdl) {
-      final v = item.controller.text;
-      dynamic value;
-
-      if (item.readOnly || item.calculated) {
-        return;
-      }
-
-      if (item.isMoney || item.isDouble) {
-        value = func.doubleRawValue(v);
-      } else if (item.isDigit) {
-        value = int.tryParse(item.controller.text) ?? 0;
-      } else if (item.fieldType == FieldType.ftBool) {
-        value = v == "true" ? true : false;
-      } else if (item.fieldType == FieldType.ftDateTime) {
-        // Tratando campos do tipo DateTime
-        final DateFormat formatter = DateFormat('yyyy-MM-ddTHH:mm:ss'); // Formato ISO 8601
-        final DateTime dateTime = DateFormat('seuFormatoEntrada').parse(v, true);
-        value = formatter.format(dateTime);
-      } else {
-        value = v;
-      }
-      setFieldByName(item.name, value);
-    }
-
-    if (dbstate == DbState.update) {
-      _addModified(DbAction.update);
-    }
-
-    notifyListeners();
-    updateData = localItems[recno].field2Json();
+  String _onlyDigits(String texto) {
+    final RegExp nonNumericRegex = RegExp(r'[^0-9]');
+    return texto.replaceAll(nonNumericRegex, '');
   }
 
-  void cancel() {
-    _updateControllerByData();
-  }
-
+  /// Salva os valores dos controladores de UI no modelo de dados.
   void save() {
-    final localItems = isFiltered ? _filteredItems : _items;
-    final List<JxField> mdl = localItems[recno].fields ?? [];
+    final List<JxField> mdl = _localItems[recno].fields ?? [];
     for (var item in mdl) {
       dynamic value;
       final str = field(item.name).controller.text;
@@ -513,77 +573,98 @@ abstract class BaseStore with ChangeNotifier {
       _modified[recno] = action;
     }
     _modified.forEach((key, value) {
-      debugPrint("modificado $key $value");
+      JxLog.trace("modificado $key $value");
     });
   }
 
-  Widget watch(String fieldName) {
-    return ListenableBuilder(
-      listenable: this,
-      builder: (BuildContext context, Widget? child) {
-        return Text(
-          "${fieldByName(fieldName)}",
-          style: const TextStyle(fontSize: 16, color: Colors.black),
-        );
-      },
-    );
-  }
-
   void _cancelAppend() {
-    final localItems = isFiltered ? _filteredItems : _items;
-    if (dbstate != DbState.canceling) {
-      return;
+    if (dbstate != DbState.insert && dbstate != DbState.canceling) return;
+
+    // Remove o último item (o que estava sendo inserido) de ambas as listas.
+    if (_items.isNotEmpty) {
+      _items.removeLast();
     }
+    if (isFiltered && _filteredItems.isNotEmpty) {
+      _filteredItems.removeLast();
+    }
+
+    // Volta para o último registro válido e atualiza a UI.
+    recno = _localItems.isNotEmpty ? _localItems.length - 1 : -1;
     dbstate = DbState.browser;
-    last();
-    localItems.removeAt(recno);
-    _modified.remove(recno);
-    recno--;
   }
 
+  @override
+  int getRecnoById(int id) {
+    return _localItems.indexWhere((item) => item.fieldByName('id') == id);
+  }
+
+  @override
+  int currentIdByRecno(int recno) {
+    if (recno < 0 || _localItems.isEmpty || recno >= _localItems.length) return 0;
+    return _localItems[recno].fieldByName('id');
+  }
+
+  /// Imprime uma mensagem no console se estiver em modo de depuração.
+  void log(String message) {
+    if (kDebugMode) {
+      print(message);
+    }
+  }
+
+  // endregion
+
+  // region CRUD Operations
+
+  /// Cancela a operação atual (ex: inserção) e reverte os dados para o estado anterior.
+  void cancel() {
+    if (dbstate == DbState.insert) {
+      _cancelAppend();
+    }
+    _updateControllerByData(); // Reverte para os dados do registro atual (anterior ao cancelado)
+  }
+
+  /// Adiciona um novo registro em branco ao final da lista de itens.
   Future<void> append() async {
-    final localItems = isFiltered ? _filteredItems : _items;
-    final JxModel mdl = localItems[recno].clone();
-
-    final int nextId = localItems.isNotEmpty
-        ? localItems.last.fields!.firstWhere((f) => f.name == 'id').value + 1
-        : 1;
-    final Map<String, dynamic> fieldValues = {
-      'id': nextId,
-      'nome': 'nome $nextId',
-      'senha': '1#dF123',
-      'salario': 1900000,
-    };
-
-    // Aplicar valores ao modelo.
-    for (var field in mdl.fields!) {
-      field.value = fieldValues[field.name] ?? field.value;
+    // 1. Cria um novo modelo em branco a partir da estrutura base.
+    final JxModel newModel = JxModel.fromFields(model);
+    for (var field in newModel.fields!) {
+      field.value = null;
     }
 
-    localItems.add(mdl);
-    recno = localItems.length - 1;
-    log("append recno $recno");
-    last();
-    _updateControllerByData();
+    // 2. Adiciona o novo modelo à lista principal (_items).
+    // Isso garante que o novo registro nunca seja perdido, mesmo com filtros ativos.
+    _items.add(newModel);
+
+    // 3. Se um filtro estiver ativo, adiciona o novo item também à lista filtrada
+    // para que ele apareça imediatamente na UI.
+    if (isFiltered) {
+      _filteredItems.add(newModel);
+    }
+
+    // 4. Move o ponteiro para o novo registro, que agora é o último da lista local.
+    recno = _localItems.length - 1;
+
+    // 5. Define o estado para 'insert' e marca o registro como modificado.
     dbstate = DbState.insert;
     _addModified(DbAction.insert);
 
-    if (isFiltered) {
-      setFilter(currentFilter);
-    }
+    // 6. Notifica a UI para refletir a adição.
+    notifyListeners();
   }
 
+  /// Coloca o store em modo de atualização para o registro atual.
   Future<void> update() async {
     dbstate = DbState.update;
     _addModified(DbAction.update);
   }
 
+  /// Marca o registro atual para exclusão.
   void remove() {
     _setDeleted();
   }
 
   void _setDeleted() {
-    log("delete $recno ${fieldByName('id')}");
+    JxLog.trace("delete $recno ${fieldByName('id')}");
     _addModified(DbAction.delete);
     if (!next()) {
       prior();
@@ -593,136 +674,81 @@ abstract class BaseStore with ChangeNotifier {
     _updateControllerByData();
   }
 
+  /// Limpa todos os itens e modificações do store.
   void clear() {
-    final localItems = isFiltered ? _filteredItems : _items;
     _modified.clear();
-    localItems.clear();
+    _items.clear();
+    _filteredItems.clear();
     if (isFiltered) {
       setFilter(currentFilter);
     }
   }
 
+  // endregion
+
+  // region Record Navigation
+
+  /// Move o ponteiro para o primeiro registro.
   void first([bool updateController = false]) {
     recno = 0;
-    log("first");
+    JxLog.trace("first");
     if (updateController) {
       _updateControllerByData();
     }
   }
 
+  /// Move o ponteiro para o último registro.
   void last([bool updateController = false]) {
-    final localItems = isFiltered ? _filteredItems : _items;
-
-    recno = localItems.length - 1;
+    recno = (_localItems.length) - 1;
 
     if (recno < 0) recno = 0;
-    log("last");
-    if (updateController) {
+    JxLog.trace("last");
+    if (updateController && _localItems.isNotEmpty) {
       _updateControllerByData();
     }
   }
 
-  dynamic fieldByName(String key) {
-    final localItems = isFiltered ? _filteredItems : _items;
-    if (recno == -1) {
-      _message = 'Item não encontrado!';
-      last();
-    }
-    if (isFiltered ? _filteredItems.isEmpty : localItems.isEmpty) {
-      throw Exception('O resultado da pesquisa está vázio!');
-    }
-    return isFiltered ? _filteredItems[recno].fieldByName(key) : localItems[recno].fieldByName(key);
-  }
-
-  void setFieldByName(String key, dynamic v) {
-    final localItems = isFiltered ? _filteredItems : _items;
-    isFiltered
-        ? _filteredItems[recno].setFieldByName(key, v)
-        : localItems[recno].setFieldByName(key, v);
-  }
-
-  void changed(String fieldName, String v) {
-    final localItems = isFiltered ? _filteredItems : _items;
-    isFiltered
-        ? _filteredItems[recno].setFieldByName(fieldName, v)
-        : localItems[recno].setFieldByName(fieldName, v);
-
-    notifyListeners();
-  }
-
-  JxField field(String fieldName) {
-    final localItems = isFiltered ? _filteredItems : _items;
-
-    if (localItems.isEmpty) {
-      var order = 0;
-      for (var it in model) {
-        if (it.name == fieldName) {
-          return model[order];
-        }
-        order++;
-      }
-      throw Exception('Field Not $fieldName Found');
-    }
-    final List<JxField> mdl = localItems[recno].fields ?? [];
-
-    for (var item in mdl) {
-      if (item.name == fieldName) {
-        return item;
-      }
-    }
-    throw Exception('Field Not $fieldName Found');
-  }
-
-  JxField fieldByOrder(int id) {
-    final localItems = isFiltered ? _filteredItems : _items;
-    if (id > localItems.length) {
-      throw Exception('Field Not $id Found');
-    }
-    final List<JxField> mdl = localItems[recno].fields ?? [];
-    return mdl[id];
-  }
-
+  /// Ordena os itens com base em um campo específico.
   void orderBy(String fieldName) {
-    final localItems = isFiltered ? _filteredItems : _items;
     if (_fieldOrder == fieldName) return;
     final vField = field(fieldName);
 
     switch (vField.type) {
       case FieldType.ftInteger:
       case FieldType.ftDouble:
-        func.sortByNumber(localItems, fieldName);
+        func.sortByNumber(_localItems, fieldName);
         break;
       case FieldType.ftDate:
       case FieldType.ftDateTime:
-        func.sortByDate(localItems, fieldName);
+        func.sortByDate(_localItems, fieldName);
         break;
       case FieldType.ftString:
       default:
-        func.sortByString(localItems, fieldName);
+        func.sortByString(_localItems, fieldName);
     }
     _fieldOrder = fieldName;
   }
 
-  void findByID(dynamic key) {
+  /// Procura um registro pelo seu ID.
+  void findByID(int key) {
     final order = _fieldOrder;
-    final localItems = isFiltered ? _filteredItems : _items;
     recno = 0;
     orderBy('id');
-    recno = func.binarySearch(key, localItems, "id");
+    recno = func.binarySearch(key, _localItems, "id");
     if (_isDeleted(recno)) next();
     orderBy(order);
   }
 
+  /// Move para o próximo registro válido.
   bool next([bool updateController = false]) {
-    final localItems = isFiltered ? _filteredItems : _items;
-    if (_isFiltered && _filteredItems.isEmpty) return false;
+    if (isFiltered && _filteredItems.isEmpty) return false;
 
     int oldRec = recno;
     bool ok = false;
 
-    while (recno < (_isFiltered ? _filteredItems.length - 1 : localItems.length - 1)) {
+    while (recno < (_localItems.length - 1)) {
       recno++;
-      //final item = _isFiltered ? _filteredItems[recno] : localItems[recno];
+      //final item = _isFiltered ? _filteredItems[recno] : _localItems[recno];
       if (!_isDeleted(recno)) {
         ok = true;
         break;
@@ -740,6 +766,7 @@ abstract class BaseStore with ChangeNotifier {
     return false;
   }
 
+  /// Move para o registro válido anterior.
   bool prior([bool updateController = false]) {
     int oldRec = recno;
     bool ok = false;
@@ -763,16 +790,28 @@ abstract class BaseStore with ChangeNotifier {
     return false;
   }
 
+  /// Encontra o primeiro registro que corresponde a um valor em um campo específico.
   void findFirst(String fieldName, dynamic key) {
     final order = _fieldOrder;
-    final localItems = isFiltered ? _filteredItems : _items;
     recno = 0;
 
     orderBy(fieldName);
-    recno = func.binarySearch(key, localItems, fieldName);
+    recno = func.binarySearch(key, _localItems, fieldName);
     if (recno == -1) {
       _message = 'Item não encontrado!';
     }
     orderBy(order);
   }
+
+  // endregion
+
+  // region Persistence
+  /// Persiste todas as alterações (inserções, atualizações, exclusões) na fonte de dados.
+  Future<void> commit() async {
+    _modified.forEach((key, value) {});
+  }
+
+  // endregion
 }
+
+abstract class BaseStore = BaseStoreWithInterface with FilteringMixin;

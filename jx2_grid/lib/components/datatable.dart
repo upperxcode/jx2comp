@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:jx2_grid/components/current_row.dart';
 import 'package:jx2_widgets/core/theme.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 import 'package:trina_grid/trina_grid.dart';
 
 enum TableAutoSizeMode { none, all, column }
@@ -15,7 +16,7 @@ class Jx2Datatable extends StatelessWidget {
   final bool darkMode;
   final TableAutoSizeMode? autoSizeMode;
   final TextStyle? textStyle;
-  final Color Function(CurrentRow)? rowColorCallback;
+  final Color Function(int)? rowColorCallback;
   final GlobalKey<_Jx2DatatableState> _gridKey = GlobalKey<_Jx2DatatableState>();
 
   Jx2Datatable({
@@ -34,7 +35,7 @@ class Jx2Datatable extends StatelessWidget {
   set activeRow(int value) => _gridKey.currentState?.activeRow = value;
   List<TrinaColumn> get gridColumns => columns; // As colunas são imutáveis aqui
   List<TrinaRow> get gridRows => rows; // As linhas são imutáveis aqui
-  Color Function(CurrentRow)? get resolvedRowColorCallback => rowColorCallback;
+  Color Function(int)? get resolvedRowColorCallback => rowColorCallback;
 
   void removeCurrentRow() => _gridKey.currentState?.removeCurrentRow();
   Future<bool> refreshGrid() async => await _gridKey.currentState?.refreshGrid() ?? false;
@@ -63,7 +64,7 @@ class _Jx2DatatableStateful extends StatefulWidget {
   final bool darkMode;
   final TableAutoSizeMode? autoSizeMode;
   final TextStyle? textStyle;
-  final Color Function(CurrentRow)? rowColorCallback;
+  final Color Function(int)? rowColorCallback;
 
   const _Jx2DatatableStateful({
     super.key,
@@ -83,7 +84,6 @@ class _Jx2DatatableState extends State<_Jx2DatatableStateful> {
   TrinaGridStateManager? _stateManager;
   bool _isGridLoaded = false;
   int _activeRow = 0;
-  final CurrentRow _currentRow = CurrentRow();
 
   @override
   Widget build(BuildContext context) {
@@ -162,27 +162,29 @@ class _Jx2DatatableState extends State<_Jx2DatatableStateful> {
   }
 
   void _onTrinaGridSortedEvent(TrinaGridOnSortedEvent event) {
-    log("Trina event $event");
+    JxLog.info("Trina event $event");
   }
 
   void _onTrinaGridChangedEvent(TrinaGridOnChangedEvent event) {
-    log("Trina event $event");
+    JxLog.info("Trina event $event");
   }
 
   void _onRowStateChanged() {
-    log("Trina event ${_stateManager?.currentRowIdx}");
+    JxLog.info("Trina event ${_stateManager?.currentRowIdx}");
     _syncRowsInternal();
   }
 
   void _syncRowsInternal() {
+    JxLog.info("_syncRowsInternal ...");
     if (_isGridLoaded && _stateManager != null) {
       final activeRowIndex = _stateManager!.currentRowIdx ?? 0;
       _activeRow = activeRowIndex;
       if (activeRowIndex != 0) {
-        final relativeRow = _stateManager!.currentRow?.cells.values.elementAt(0).value;
-        log("currentRow => $relativeRow");
+        final relativeRow = _stateManager!.currentRow?.cells.values.elementAt(0).value ?? 0;
+        JxLog.info("currentRow => $relativeRow");
       }
     }
+    JxLog.info("... _syncRowsInternal");
   }
 
   void _moveCurrentCellPositionToActiveRowInternal() {
@@ -190,14 +192,13 @@ class _Jx2DatatableState extends State<_Jx2DatatableStateful> {
       try {
         _stateManager!.moveCurrentCellByRowIdx(_activeRow, TrinaMoveDirection.down, notify: true);
       } catch (e) {
-        log("error moving cell: $e");
+        JxLog.info("error moving cell: $e");
       }
     }
   }
 
   Color _rowColor(TrinaRowColorContext colorContext) {
-    _currentRow.context = colorContext;
-    return widget.rowColorCallback?.call(_currentRow) ??
+    return widget.rowColorCallback?.call(colorContext.rowIdx) ??
         (colorContext.rowIdx.isEven ? Colors.white38 : Colors.black26);
   }
 
@@ -205,10 +206,9 @@ class _Jx2DatatableState extends State<_Jx2DatatableStateful> {
     return TrinaGridConfiguration(
       localeText: _localeText(),
       columnSize: TrinaGridColumnSizeConfig(
-        autoSizeMode:
-            widget.autoSizeMode == TableAutoSizeMode.none
-                ? TrinaAutoSizeMode.none
-                : TrinaAutoSizeMode.scale,
+        autoSizeMode: widget.autoSizeMode == TableAutoSizeMode.none
+            ? TrinaAutoSizeMode.none
+            : TrinaAutoSizeMode.scale,
         resizeMode: TrinaResizeMode.normal,
       ),
       style: TrinaGridStyleConfig(

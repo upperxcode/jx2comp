@@ -1,7 +1,3 @@
-// ignore_for_file: library_private_types_in_public_api
-
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:jx2_widgets/components/icons/double_icons_row.dart';
 import 'package:jx2_widgets/components/screens/balloon_tooltips.dart';
@@ -11,6 +7,7 @@ import 'package:jx_data/components/models/jx_field.dart';
 import 'package:jx_data/components/utils/type2icon.dart';
 import 'package:jx_data/components/widgets/field_title.dart';
 import 'package:jx_data/components/widgets/utils.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 
 class SimpleDropdown extends StatefulWidget {
   final JxField field;
@@ -25,7 +22,7 @@ class _DropdownWithDecorationState extends State<SimpleDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    log("Value boolean => ${widget.field.value}");
+    JxLog.info("Value boolean => ${widget.field.value}");
     return Padding(
       padding: const EdgeInsets.all(10.0),
       child: Column(
@@ -41,7 +38,7 @@ class _DropdownWithDecorationState extends State<SimpleDropdown> {
               setState(() {
                 widget.field.value = newValue == "SIM" ? true : false;
                 widget.field.controller.text = newValue == "SIM" ? "true" : "false";
-                log("changed controller ${widget.field.controller.text}");
+                JxLog.info("changed controller ${widget.field.controller.text}");
               });
             },
             items: <String>['SIM', 'NÃO'].map<DropdownMenuItem<String>>((String value) {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:jx2_widgets/core/theme/enums.dart';
 import 'package:jx2_widgets/core/theme/jx_colors.dart';
 import 'package:jx2_widgets/core/theme/theme.dart';
+import 'package:jx_utils/logs/jx_log.dart';
 import 'themes.json.dart';
 
 class JxTheme {
@@ -33,7 +34,7 @@ class JxTheme {
         ),
       );
     } catch (e) {
-      log('Erro ao carregar temas predefinidos: $e');
+      JxLog.info('Erro ao carregar temas predefinidos: $e');
       _predefinedThemesRaw = {};
     }
   }
@@ -123,12 +124,12 @@ class JxTheme {
               _currentSessionColors[colorName]!; // Salvar como uma sobrescrita do usuário
         } else {
           // Lidar com cores não existentes no tema base, se necessário
-          log('A cor "$colorName" não existe no tema base "$themeMode".');
+          JxLog.info('A cor "$colorName" não existe no tema base "$themeMode".');
         }
       });
       _saveUserOverrides(); // Salvar as alterações
     } else {
-      log('O tema base "$themeMode" não foi encontrado.');
+      JxLog.info('O tema base "$themeMode" não foi encontrado.');
     }
   }
 

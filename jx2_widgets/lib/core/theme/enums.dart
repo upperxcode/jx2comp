@@ -113,7 +113,9 @@ enum JxColor {
   dbNavEdit,
   dbNavRefresh,
   dbNavSave,
-  dbNavCancel;
+  dbNavCancel,
+  dbNavCustom1,
+  dbNavCustom2;
 
   @override
   String toString() {
